@@ -1,0 +1,8 @@
+# Set default behavior to automatically normalize line endings.
+* text=auto
+
+# Force bash scripts to always use lf line endings.
+*.sh text eol=lf
+
+# Force go source to always use lf line endings.always
+*.go text eol=lf
