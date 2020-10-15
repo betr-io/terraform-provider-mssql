@@ -41,8 +41,9 @@ func dataSourceDatabase() *schema.Resource {
               Required: true,
             },
             "password": {
-              Type:     schema.TypeString,
-              Required: true,
+              Type:      schema.TypeString,
+              Required:  true,
+              Sensitive: true,
             },
           },
         },
@@ -67,6 +68,7 @@ func dataSourceDatabase() *schema.Resource {
             "client_secret": {
               Type:        schema.TypeString,
               Required:    true,
+              Sensitive:   true,
               DefaultFunc: schema.EnvDefaultFunc("ARM_CLIENT_SECRET", nil),
             },
           },
