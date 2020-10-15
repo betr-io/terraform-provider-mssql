@@ -9,3 +9,17 @@ terraform {
 }
 
 provider "mssql" {}
+
+data "mssql_database" "db" {
+  server_name   = "betr-ci-sql-server"
+  database_name = "surveyjs"
+  azure_administrator {}
+}
+
+data "mssql_roles" "all" {
+  database_id = data.mssql_database.db.id
+}
+
+output "roles" {
+  value = data.mssql_roles.all
+}

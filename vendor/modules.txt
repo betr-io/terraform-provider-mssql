@@ -1,7 +1,32 @@
+# github.com/Azure/go-autorest v14.2.0+incompatible
+github.com/Azure/go-autorest
+# github.com/Azure/go-autorest/autorest v0.11.10
+## explicit
+github.com/Azure/go-autorest/autorest
+github.com/Azure/go-autorest/autorest/azure
+# github.com/Azure/go-autorest/autorest/adal v0.9.5
+## explicit
+github.com/Azure/go-autorest/autorest/adal
+# github.com/Azure/go-autorest/autorest/date v0.3.0
+github.com/Azure/go-autorest/autorest/date
+# github.com/Azure/go-autorest/logger v0.2.0
+github.com/Azure/go-autorest/logger
+# github.com/Azure/go-autorest/tracing v0.6.0
+github.com/Azure/go-autorest/tracing
 # github.com/agext/levenshtein v1.2.2
 github.com/agext/levenshtein
 # github.com/apparentlymart/go-textseg v1.0.0
 github.com/apparentlymart/go-textseg/textseg
+# github.com/denisenkom/go-mssqldb v0.0.0-20200910202707-1e08a3fab204
+## explicit
+github.com/denisenkom/go-mssqldb
+github.com/denisenkom/go-mssqldb/internal/cp
+github.com/denisenkom/go-mssqldb/internal/decimal
+github.com/denisenkom/go-mssqldb/internal/querytext
+# github.com/form3tech-oss/jwt-go v3.2.2+incompatible
+github.com/form3tech-oss/jwt-go
+# github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
+github.com/golang-sql/civil
 # github.com/golang/protobuf v1.4.2
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
@@ -76,6 +101,10 @@ github.com/zclconf/go-cty/cty/function/stdlib
 github.com/zclconf/go-cty/cty/gocty
 github.com/zclconf/go-cty/cty/json
 github.com/zclconf/go-cty/cty/set
+# golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
+golang.org/x/crypto/md4
+golang.org/x/crypto/pkcs12
+golang.org/x/crypto/pkcs12/internal/rc2
 # golang.org/x/net v0.0.0-20200707034311-ab3426394381
 golang.org/x/net/context
 golang.org/x/net/http/httpguts
