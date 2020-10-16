@@ -1,6 +1,8 @@
 /.idea/
 /bin/
+.local.env
 terraform-provider-mssql
+terraform-provider-mssql.log
 
 # Local .terraform directories
 **/.terraform/*

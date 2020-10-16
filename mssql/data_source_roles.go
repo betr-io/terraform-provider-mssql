@@ -2,9 +2,10 @@ package mssql
 
 import (
   "context"
+  sql2 "database/sql"
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-  "io"
+  "github.com/pkg/errors"
   "strconv"
   "time"
 )
@@ -13,9 +14,25 @@ func dataSourceRoles() *schema.Resource {
   return &schema.Resource{
     ReadContext: dataSourceRolesRead,
     Schema: map[string]*schema.Schema{
-      "database_id": {
+      "server": {
+        Type:         schema.TypeList,
+        MaxItems:     1,
+        Optional:     true,
+        ExactlyOneOf: []string{"server", "server_encoded"},
+        Elem: &schema.Resource{
+          Schema: getServerSchema("server", true, nil),
+        },
+      },
+      "server_encoded": {
+        Type:         schema.TypeString,
+        Optional:     true,
+        Sensitive:    true,
+        ExactlyOneOf: []string{"server", "server_encoded"},
+      },
+      "database": {
         Type:     schema.TypeString,
-        Required: true,
+        Optional: true,
+        Default:  "master",
       },
       "roles": {
         Type:     schema.TypeList,
@@ -41,25 +58,28 @@ func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta in
   // Warnings or errors can be collected in a slice type
   var diags diag.Diagnostics
 
-  id := data.Get("database_id").(string)
-  c := meta.(map[string]*Connector)[id]
-
-  rows, err := c.QueryContext(ctx, "SELECT uid, name FROM sys.sysusers WHERE issqlrole = 1")
-  if err != nil {
-    return diag.FromErr(err)
+  connector, diags := getConnector("server", data)
+  if diags != nil {
+    return diags
   }
-  defer checkClose(rows, &diags)
+  connector.Database = data.Get("database").(string)
 
   roles := make([]map[string]interface{}, 0)
-  for rows.Next() {
-    var id int
-    var name string
-    err := rows.Scan(&id, &name)
-    if err != nil {
-      return diag.FromErr(err)
+  err := connector.QueryContext(ctx, "SELECT uid, name FROM [sys].[sysusers] WHERE [issqlrole] = 1", func(r *sql2.Rows) error {
+    for r.Next() {
+      var id int64
+      var name string
+      err := r.Scan(&id, &name)
+      if err != nil {
+        return err
+      }
+      roles = append(roles, map[string]interface{}{"id": id, "name": name})
     }
+    return nil
+  })
 
-    roles = append(roles, map[string]interface{}{"id": id, "name": name})
+  if err != nil {
+    return diag.FromErr(errors.Wrap(err, "RolesRead"))
   }
 
   if err := data.Set("roles", roles); err != nil {
@@ -70,10 +90,4 @@ func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta in
   data.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 
   return diags
-}
-
-func checkClose(c io.Closer, diags *diag.Diagnostics) {
-  if err := c.Close(); err != nil {
-    *diags = append(*diags, diag.FromErr(err)[0])
-  }
 }

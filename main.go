@@ -10,7 +10,7 @@ import (
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
 		ProviderFunc: func() *schema.Provider {
-			return mssql.Provider()
+			return mssql.NewProvider()
 		},
 	})
 }
