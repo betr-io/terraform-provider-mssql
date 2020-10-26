@@ -13,7 +13,7 @@ provider "mssql" {
 }
 
 data "mssql_server" "db" {
-  name = "betr-ci-sql-server"
+  host = "betr-ci-sql-server.database.windows.net"
   azure_administrator {}
 }
 
@@ -28,7 +28,7 @@ output "roles" {
 
 resource "mssql_az_sp_login" "reportingAPI" {
   server {
-    name = "betr-ci-sql-server"
+    host = "betr-ci-sql-server.database.windows.net"
     azure_administrator {}
   }
   #  client_id = "02a8acd6-b32b-4141-89df-58813ae8e2fd"
@@ -42,7 +42,7 @@ resource "mssql_az_sp_login" "reportingAPI" {
 
 # data "mssql_roles" "other" {
 #   server {
-#     name = "betr-ci-sql-server"
+#     name = "betr-ci-sql-server.database.windows.net"
 #     azure_administrator {
 #       client_id     = "02a8acd6-b32b-4141-89df-58813ae8e2fd"
 #       client_secret = "wD5puzkg@yEx0PrK3uQ6f0IqDp1RU3J0rdem"

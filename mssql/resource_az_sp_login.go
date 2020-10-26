@@ -74,29 +74,13 @@ func resourceAzSpCreate(ctx context.Context, data *schema.ResourceData, meta int
   logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "create").Logger()
   logger.Debug().Msgf("Create %s", data.Id())
 
-  // update server.0.fqdn if not set or empty
-  if fqdn, ok := data.GetOk("server.0.fqdn"); !ok || fqdn.(string) == "" {
-    name := data.Get("server.0.name").(string)
-    if strings.HasSuffix(name, ".database.windows.net") || strings.IndexRune(name, '.') != -1 {
-      fqdn = name
-    } else {
-      fqdn = name + ".database.windows.net"
-    }
-    servers := data.Get(serverProp).([]interface{})
-    server := servers[0].(map[string]interface{})
-    server["fqdn"] = fqdn
-    if err := data.Set(serverProp, servers); err != nil {
-      return diag.FromErr(err)
-    }
-  }
-
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
   clientId := data.Get(clientIdProp).(string)
   defSchema := data.Get(schemaProp).(string)
   roles := data.Get(rolesProp).([]interface{})
 
-  connector := GetConnector("server", data)
+  connector := GetConnector(serverProp, data)
   connector.Database = database
 
   err := connector.CreateAzureADLogin(ctx, username, clientId, defSchema, roles)
@@ -164,7 +148,7 @@ func resourceAzSpLoginImport(ctx context.Context, data *schema.ResourceData, met
   logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "import").Logger()
   logger.Debug().Msgf("Import %s", data.Id())
 
-  server, err := serverFromId(data.Id())
+  server, err := serverFromId(data.Id(), false)
   if err != nil {
     return nil, err
   }
@@ -222,7 +206,7 @@ func resourceAzSpLoginImport(ctx context.Context, data *schema.ResourceData, met
 }
 
 func resourceAzSpLoginGetID(data *schema.ResourceData) string {
-  host := data.Get(serverProp + ".0.fqdn").(string)
+  host := data.Get(serverProp + ".0.host").(string)
   port := data.Get(serverProp + ".0.port").(string)
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)

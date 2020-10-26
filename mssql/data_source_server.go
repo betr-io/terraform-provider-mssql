@@ -52,24 +52,11 @@ func dataSourceServerRead(ctx context.Context, data *schema.ResourceData, meta i
 func getServerSchema(prefix string, allowAdministratorLogin bool, extensions *map[string]*schema.Schema) map[string]*schema.Schema {
   prefix = getPrefix(prefix)
   s := map[string]*schema.Schema{
-    "name": {
+    "host": {
       Type:     schema.TypeString,
       Required: true,
       ForceNew: true,
       DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-        return strings.ToLower(old) == strings.ToLower(new)
-      },
-    },
-    "fqdn": {
-      Type:     schema.TypeString,
-      Optional: true,
-      ForceNew: true,
-      DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-        old = strings.ToLower(old)
-        if new == "" {
-          name := strings.ToLower(d.Get(prefix + "name").(string))
-          return old == name || old == name+".database.windows.net"
-        }
         return strings.ToLower(old) == strings.ToLower(new)
       },
     },
@@ -140,7 +127,7 @@ func getServerSchema(prefix string, allowAdministratorLogin bool, extensions *ma
   return s
 }
 
-func serverFromId(id string) ([]map[string]interface{}, error) {
+func serverFromId(id string, allowAdministratorLogin bool) ([]map[string]interface{}, error) {
   u, err := url.Parse(id)
   if err != nil {
     return nil, err
@@ -160,30 +147,36 @@ func serverFromId(id string) ([]map[string]interface{}, error) {
     }
   }
 
-  name := host
-  if strings.HasSuffix(host, ".database.windows.net") {
-    name = host[:len(host)-len(".database.windows.net")]
-  }
-
   values := u.Query()
 
   administratorLogin, adminInValues := getAdministratorLogin(values)
   azureAdministrator, azureInValues := getAzureAdministrator(values)
   if administratorLogin == nil && azureAdministrator == nil {
-    return nil, errors.New("neither administrator login nor azure administrator specified in ID")
+    return nil, errors.New("neither administrator login nor azure administrator specified")
   }
   if adminInValues && azureInValues {
-    return nil, errors.New("both administrator login and azure administrator specified in ID")
+    return nil, errors.New("both administrator login and azure administrator specified in resource")
   }
-  if administratorLogin != nil {
-    azureAdministrator = nil
+  if administratorLogin != nil && azureAdministrator != nil {
+    // prefer azure administrator login
+    administratorLogin = nil
   }
 
+  if allowAdministratorLogin {
+    return []map[string]interface{}{{
+      "host":                host,
+      "port":                port,
+      "administrator_login": administratorLogin,
+      "azure_administrator": azureAdministrator,
+    }}, nil
+  }
+
+  if azureAdministrator == nil {
+    return nil, errors.New("this resource requires azure administrator")
+  }
   return []map[string]interface{}{{
-    "name":                name,
-    "fqdn":                host,
+    "host":                host,
     "port":                port,
-    "administrator_login": administratorLogin,
     "azure_administrator": azureAdministrator,
   }}, nil
 }
@@ -270,7 +263,7 @@ func createConnector(prefix string, data *schema.ResourceData) (*sql.Connector, 
   var diags diag.Diagnostics
 
   connector := &sql.Connector{
-    Host:    data.Get(prefix + "name").(string),
+    Host:    data.Get(prefix + "host").(string),
     Port:    data.Get(prefix + "port").(string),
     Timeout: data.Timeout(schema.TimeoutRead),
   }
@@ -293,21 +286,6 @@ func createConnector(prefix string, data *schema.ResourceData) (*sql.Connector, 
     }
   }
 
-  if fqdn, ok := data.GetOk(prefix + "fqdn"); ok {
-    connector.Host = fqdn.(string)
-  } else if connector.AzureAdministrator != nil && !strings.HasSuffix(connector.Host, ".database.windows.net") {
-    connector.Host = connector.Host + ".database.windows.net"
-    if prefix == "" {
-      if err := data.Set(prefix+"fqdn", connector.Host); err != nil {
-        diags = append(diags, diag.FromErr(err)[0])
-      }
-    } else {
-      servers := data.Get("server").([]interface{})
-      server := servers[0].(map[string]interface{})
-      server["fqdn"] = connector.Host
-    }
-  }
-
   return connector, diags
 }
 
@@ -315,7 +293,7 @@ func GetConnector(prefix string, data *schema.ResourceData) *sql.Connector {
   prefix = getPrefix(prefix)
 
   connector := &sql.Connector{
-    Host:    data.Get(prefix + "fqdn").(string),
+    Host:    data.Get(prefix + "host").(string),
     Port:    data.Get(prefix + "port").(string),
     Timeout: data.Timeout(schema.TimeoutRead),
   }

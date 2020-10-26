@@ -50,8 +50,7 @@ resource "random_password" "password" {
 }
 
 data "mssql_server" "db" {
-  name = "db"
-  fqdn = "localhost"
+  host = "localhost"
   administrator_login {
     username = "sa"
     password = "$$up3R$$3cR37"
@@ -88,8 +87,7 @@ data "mssql_roles" "all" {
 
 data "mssql_roles" "other" {
   server {
-    name = "db"
-    fqdn = "localhost"
+    host = "localhost"
     administrator_login {
       username = "sa"
       password = "$$up3R$$3cR37"

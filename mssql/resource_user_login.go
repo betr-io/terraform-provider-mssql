@@ -104,8 +104,7 @@ func resourceUserLoginImport(ctx context.Context, data *schema.ResourceData, met
   }
   server := make([]map[string]interface{}, 1)
   server[0] = map[string]interface{}{
-    "name":                host,
-    "fqdn":                host,
+    "host":                host,
     "port":                port,
     "administrator_login": administratorLogin,
   }

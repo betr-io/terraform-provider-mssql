@@ -53,9 +53,12 @@ func (c *Connector) GetUserLogin(ctx context.Context, username string) (*Login, 
     return nil, err
   }
 
-  sid, err := uuid.FromBytes(bytes)
-  if err != nil {
-    return nil, err
+  var sid uuid.UUID
+  if len(bytes) > 0 {
+    sid, err = uuid.FromBytes(bytes)
+    if err != nil {
+      return nil, err
+    }
   }
   if principalID != -1 {
     return &Login{
