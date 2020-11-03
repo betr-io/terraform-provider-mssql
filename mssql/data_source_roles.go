@@ -55,17 +55,17 @@ func dataSourceRoles() *schema.Resource {
 }
 
 func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  // Warnings or errors can be collected in a slice type
-  var diags diag.Diagnostics
+  logger := meta.(Provider).logger.With().Str("datasource", "roles").Str("func", "read").Logger()
+  logger.Debug().Msgf("read %s", data.Id())
 
-  connector, diags := getConnector("server", data)
-  if diags != nil {
-    return diags
+  connector, err := GetConnector("server", data)
+  if err != nil {
+    return diag.FromErr(err)
   }
   connector.Database = data.Get("database").(string)
 
   roles := make([]map[string]interface{}, 0)
-  err := connector.QueryContext(ctx, "SELECT uid, name FROM [sys].[sysusers] WHERE [issqlrole] = 1", func(r *sql2.Rows) error {
+  err = connector.QueryContext(ctx, "SELECT uid, name FROM [sys].[sysusers] WHERE [issqlrole] = 1", func(r *sql2.Rows) error {
     for r.Next() {
       var id int64
       var name string
@@ -78,6 +78,8 @@ func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta in
     return nil
   })
 
+  logger.Info().Msgf("Token = %s", connector.Token)
+
   if err != nil {
     return diag.FromErr(errors.Wrap(err, "RolesRead"))
   }
@@ -89,5 +91,5 @@ func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta in
   // always run
   data.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 
-  return diags
+  return nil
 }

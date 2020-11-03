@@ -6,7 +6,6 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
-  "net/url"
   "strings"
   "time"
 )
@@ -38,10 +37,12 @@ func resourceAzSpLogin() *schema.Resource {
       databaseProp: {
         Type:     schema.TypeString,
         Required: true,
+        ForceNew: true,
       },
       usernameProp: {
         Type:     schema.TypeString,
         Required: true,
+        ForceNew: true,
       },
       clientIdProp: {
         Type:     schema.TypeString,
@@ -72,7 +73,7 @@ func resourceAzSpLogin() *schema.Resource {
 
 func resourceAzSpCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
   logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "create").Logger()
-  logger.Debug().Msgf("Create %s", data.Id())
+  logger.Debug().Msgf("Create %s", resourceAzSpLoginGetID(data))
 
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
@@ -80,12 +81,15 @@ func resourceAzSpCreate(ctx context.Context, data *schema.ResourceData, meta int
   defSchema := data.Get(schemaProp).(string)
   roles := data.Get(rolesProp).([]interface{})
 
-  connector := GetConnector(serverProp, data)
+  connector, err := GetConnector(serverProp, data)
+  if err != nil {
+    return diag.FromErr(err)
+  }
   connector.Database = database
 
-  err := connector.CreateAzureADLogin(ctx, username, clientId, defSchema, roles)
+  err = connector.CreateAzureADLogin(ctx, username, defSchema, roles)
   if err != nil {
-   return diag.FromErr(errors.Wrap(err, fmt.Sprintf("unable to create az login [%s].[%s]", database, username)))
+    return diag.FromErr(errors.Wrap(err, fmt.Sprintf("unable to create az login [%s].[%s]", database, username)))
   }
 
   data.SetId(resourceAzSpLoginGetID(data))
@@ -102,7 +106,10 @@ func resourceAzSpRead(ctx context.Context, data *schema.ResourceData, meta inter
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector := GetConnector(serverProp, data)
+  connector, err := GetConnector(serverProp, data)
+  if err != nil {
+    return diag.FromErr(err)
+  }
   connector.Database = database
 
   login, err := connector.GetUserLogin(ctx, username)
@@ -112,19 +119,19 @@ func resourceAzSpRead(ctx context.Context, data *schema.ResourceData, meta inter
   if login == nil {
     logger.Info().Msgf("No login found for user [%s].[%s]", database, username)
     data.SetId("")
-  }
-
-  if err = data.Set(clientIdProp, login.SID.String()); err != nil {
-    return diag.FromErr(err)
-  }
-  if err = data.Set(principalIdProp, login.PrincipalID); err != nil {
-    return diag.FromErr(err)
-  }
-  if err = data.Set(schemaProp, login.Schema); err != nil {
-    return diag.FromErr(err)
-  }
-  if err = data.Set(rolesProp, login.Roles); err != nil {
-    return diag.FromErr(err)
+  } else {
+    if err = data.Set(clientIdProp, login.SID.String()); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(principalIdProp, login.PrincipalID); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(schemaProp, login.Schema); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(rolesProp, login.Roles); err != nil {
+      return diag.FromErr(err)
+    }
   }
 
   return nil
@@ -141,6 +148,23 @@ func resourceAzSpDelete(ctx context.Context, data *schema.ResourceData, meta int
   logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "delete").Logger()
   logger.Debug().Msgf("Delete %s", data.Id())
 
+  database := data.Get(databaseProp).(string)
+  username := data.Get(usernameProp).(string)
+
+  connector, err := GetConnector(serverProp, data)
+  if err != nil {
+    return diag.FromErr(err)
+  }
+  connector.Database = database
+
+  err = connector.DeleteUserLogin(ctx, username)
+  if err != nil {
+    return diag.FromErr(errors.Wrap(err, fmt.Sprintf("unable to delete login [%s].[%s]", database, username)))
+  }
+
+  // d.SetId("") is automatically called assuming delete returns no errors, but it is added here for explicitness.
+  data.SetId("")
+
   return nil
 }
 
@@ -148,16 +172,11 @@ func resourceAzSpLoginImport(ctx context.Context, data *schema.ResourceData, met
   logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "import").Logger()
   logger.Debug().Msgf("Import %s", data.Id())
 
-  server, err := serverFromId(data.Id(), false)
+  server, u, err := serverFromId(data.Id(), false)
   if err != nil {
     return nil, err
   }
   if err = data.Set(serverProp, server); err != nil {
-    return nil, err
-  }
-
-  u, err := url.Parse(data.Id())
-  if err != nil {
     return nil, err
   }
 
@@ -177,7 +196,10 @@ func resourceAzSpLoginImport(ctx context.Context, data *schema.ResourceData, met
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector := GetConnector(serverProp, data)
+  connector, err := GetConnector(serverProp, data)
+  if err != nil {
+    return nil, err
+  }
   connector.Database = database
 
   login, err := connector.GetUserLogin(ctx, username)

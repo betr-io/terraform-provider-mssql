@@ -19,23 +19,24 @@ import (
 const DefaultPort = "1433"
 
 type Connector struct {
-  Host               string `json:"host"`
-  Port               string `json:"port"`
-  Database           string `json:"database"`
-  Administrator      *AdministratorLogin
-  AzureAdministrator *AzureAdministrator
-  Timeout            time.Duration `json:"timeout,omitempty"`
+  Host       string `json:"host"`
+  Port       string `json:"port"`
+  Database   string `json:"database"`
+  Login      *LoginUser
+  AzureLogin *AzureLogin
+  Timeout    time.Duration `json:"timeout,omitempty"`
+  Token      string
 }
 
-type AdministratorLogin struct {
-  Username string `json:"admin_username,omitempty"`
-  Password string `json:"admin_password,omitempty"`
+type LoginUser struct {
+  Username string `json:"username,omitempty"`
+  Password string `json:"password,omitempty"`
 }
 
-type AzureAdministrator struct {
-  TenantID     string `json:"azure_tenant_id,omitempty"`
-  ClientID     string `json:"azure_client_id,omitempty"`
-  ClientSecret string `json:"azure_client_secret,omitempty"`
+type AzureLogin struct {
+  TenantID     string `json:"tenant_id,omitempty"`
+  ClientID     string `json:"client_id,omitempty"`
+  ClientSecret string `json:"client_secret,omitempty"`
 }
 
 func (c *Connector) ID() string {
@@ -102,6 +103,21 @@ func (c *Connector) QueryContext(ctx context.Context, query string, scanner func
   return nil
 }
 
+func (c *Connector) QueryRowContext(ctx context.Context, query string, scanner func(*sql.Row) error, args ...interface{}) error {
+  db, err := c.db()
+  if err != nil {
+    return err
+  }
+  defer db.Close()
+
+  row := db.QueryRowContext(ctx, query, args...)
+  if row.Err() != nil {
+    return row.Err()
+  }
+
+  return scanner(row)
+}
+
 func (c *Connector) db() (*sql.DB, error) {
   if c == nil {
     panic("No connector")
@@ -118,8 +134,9 @@ func (c *Connector) db() (*sql.DB, error) {
 }
 
 func (c *Connector) connector() (driver.Connector, error) {
-  query := url.Values{
-    "database": {c.Database},
+  query := url.Values{}
+  if c.Database != "" {
+    query.Set("database", c.Database)
   }
   connectionString := (&url.URL{
     Scheme:   "sqlserver",
@@ -127,15 +144,15 @@ func (c *Connector) connector() (driver.Connector, error) {
     Host:     c.Host,
     RawQuery: query.Encode(),
   }).String()
-  if c.Administrator != nil {
+  if c.Login != nil {
     return mssql.NewConnector(connectionString)
   }
   return mssql.NewAccessTokenConnector(connectionString, func() (string, error) { return c.tokenProvider() })
 }
 
 func (c *Connector) userPassword() *url.Userinfo {
-  if c.Administrator != nil {
-    return url.UserPassword(c.Administrator.Username, c.Administrator.Password)
+  if c.Login != nil {
+    return url.UserPassword(c.Login.Username, c.Login.Password)
   }
   return nil
 }
@@ -143,7 +160,7 @@ func (c *Connector) userPassword() *url.Userinfo {
 func (c *Connector) tokenProvider() (string, error) {
   const resourceID = "https://database.windows.net/"
 
-  admin := c.AzureAdministrator
+  admin := c.AzureLogin
   oauthConfig, err := adal.NewOAuthConfig(azure.PublicCloud.ActiveDirectoryEndpoint, admin.TenantID)
   if err != nil {
     return "", err
@@ -158,6 +175,8 @@ func (c *Connector) tokenProvider() (string, error) {
   if err != nil {
     return "", err
   }
+
+  c.Token = spt.OAuthToken()
 
   return spt.OAuthToken(), nil
 }
@@ -177,7 +196,7 @@ func connectLoop(connector driver.Connector, timeout time.Duration) (*sql.DB, er
       if err == nil {
         return db, nil
       }
-      if strings.Contains(err.Error(), "Login error") {
+      if strings.Contains(err.Error(), "UserLogin error") {
         return nil, err
       }
       log.Println(errors.Wrap(err, "failed to connect to database"))

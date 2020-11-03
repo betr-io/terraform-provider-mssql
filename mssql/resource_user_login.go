@@ -6,11 +6,7 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
-  "net"
-  "net/url"
-  "os"
   "strings"
-  "terraform-provider-mssql/sql"
 )
 
 const serverEncodedProp = "server_encoded"
@@ -55,137 +51,104 @@ func resourceUserLogin() *schema.Resource {
         Required:  true,
         Sensitive: true,
       },
+      principalIdProp: {
+        Type:     schema.TypeInt,
+        Computed: true,
+      },
+      schemaProp: {
+        Type:     schema.TypeString,
+        Optional: true,
+        Default:  schemaPropDefault,
+      },
+      rolesProp: {
+        Type:     schema.TypeList,
+        Optional: true,
+        DefaultFunc: func() (interface{}, error) {
+          return rolesPropDefault, nil
+        },
+        Elem: &schema.Schema{
+          Type: schema.TypeString,
+        },
+      },
     },
   }
 }
 
-func resourceUserLoginImport(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-  // logger := meta.(Provider).logger
-
-  id := data.Id()
-  u, err := url.Parse(id)
-  if err != nil {
-    return nil, err
-  }
-
-  host := u.Host
-  port := sql.DefaultPort
-
-  if strings.IndexRune(host, ':') != -1 {
-    var err error
-    if host, port, err = net.SplitHostPort(u.Host); err != nil {
-      return nil, err
-    }
-  }
-
-  parts := strings.SplitN(u.Path, "/", 3)
-  databaseName := parts[1]
-  username := parts[2]
-
-  var found bool
-  values := u.Query()
-  adminUsername := values.Get("admin_username")
-  if adminUsername == "" {
-    if adminUsername, found = os.LookupEnv("MSSQL_USERNAME"); !found {
-      return nil, errors.New("Missing admin_username query value or MSSQL_USERNAME environment variable")
-    }
-  }
-  adminPassword := values.Get("admin_password")
-  if adminPassword == "" {
-    if adminPassword, found = os.LookupEnv("MSSQL_PASSWORD"); !found {
-      return nil, errors.New("Missing MSSQL_PASSWORD environment variable")
-    }
-  }
-
-  administratorLogin := make([]map[string]interface{}, 1)
-  administratorLogin[0] = map[string]interface{}{
-    "username": adminUsername,
-    "password": adminPassword,
-  }
-  server := make([]map[string]interface{}, 1)
-  server[0] = map[string]interface{}{
-    "host":                host,
-    "port":                port,
-    "administrator_login": administratorLogin,
-  }
-  if err = data.Set("server", server); err != nil {
-    return nil, err
-  }
-  if err = data.Set(databaseProp, parts[0]); err != nil {
-    return nil, err
-  }
-  if err = data.Set(usernameProp, parts[1]); err != nil {
-    return nil, err
-  }
-
-  data.SetId(fmt.Sprintf("sqlserver://%s:%d/%s/%s", host, port, databaseName, username))
-
-  return []*schema.ResourceData{data}, nil
-}
-
 func resourceUserLoginCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  connector, diags := getConnector("server", data)
-  if diags != nil {
-    return diags
-  }
+  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "create").Logger()
+  logger.Debug().Msgf("Create %s", resourceAzSpLoginGetID(data))
 
-  connector.Database = data.Get(databaseProp).(string)
+  database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
   password := data.Get(passwordProp).(string)
+  defSchema := data.Get(schemaProp).(string)
+  roles := data.Get(rolesProp).([]interface{})
 
-  if err := connector.CreateUserLogin(ctx, connector.Database, username, password); err != nil {
+  connector, err := GetConnector(serverProp, data)
+  if err != nil {
     return diag.FromErr(err)
   }
+  connector.Database = database
 
-  data.SetId(connector.ID() + "/" + username)
+  if err = connector.CreateUserLogin(ctx, database, username, password, defSchema, roles); err != nil {
+    return diag.FromErr(errors.Wrap(err, fmt.Sprintf("unable to create login [%s].[%s]", database, username)))
+  }
+
+  data.SetId(resourceUserLoginGetID(data))
+
+  logger.Info().Msgf("created login [%s].[%s]", database, username)
 
   return resourceUserLoginRead(ctx, data, meta)
 }
 
 func resourceUserLoginRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger
-  logger.Info().Msgf("Read user login %v %+v", data.Id(), data)
+  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "read").Logger()
+  logger.Debug().Msgf("Read %s", resourceUserLoginGetID(data))
 
-  connector, diags := getConnector("server", data)
-  if diags != nil {
-    return diags
-  }
-  connector.Database = data.Get(databaseProp).(string)
+  database := data.Get(databaseProp).(string)
+  username := data.Get(usernameProp).(string)
 
-  logger.Info().Msgf("Connector %+v", connector)
-
-  u, err := url.Parse(data.Id())
+  connector, err := GetConnector(serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
-  username := strings.SplitN(u.Path, "/", 3)[2]
+  connector.Database = database
 
   login, err := connector.GetUserLogin(ctx, username)
   if err != nil {
-    logger.Err(err)
-    return diag.FromErr(errors.Wrap(err, "UserLoginRead"))
+    return diag.FromErr(errors.Wrap(err, fmt.Sprintf("unable to read login [%s].[%s]", database, username)))
   }
   if login == nil {
     logger.Info().Msgf("No login found for user [%s].[%s]'", connector.Database, username)
     data.SetId("")
+  } else {
+    if err = data.Set(principalIdProp, login.PrincipalID); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(schemaProp, login.Schema); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(rolesProp, login.Roles); err != nil {
+      return diag.FromErr(err)
+    }
   }
-
-  logger.Info().Msgf("data %#v\nlogin %+v", *data, login)
-
-  data.Set(usernameProp, login.Username)
-  data.Set(serverProp, connector)
 
   return nil
 }
 
 func resourceUserLoginUpdate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  connector, diags := getConnector("server", data)
-  if diags != nil {
-    return diags
-  }
+  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "update").Logger()
+  logger.Debug().Msgf("Update %s", data.Id())
 
+  database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
   password := data.Get(passwordProp).(string)
+
+  connector, err := GetConnector(serverProp, data)
+  if err != nil {
+    return diag.FromErr(err)
+  }
+  connector.Database = database
 
   if err := connector.UpdateUserLogin(ctx, username, password); err != nil {
     return diag.FromErr(err)
@@ -195,17 +158,88 @@ func resourceUserLoginUpdate(ctx context.Context, data *schema.ResourceData, met
 }
 
 func resourceUserLoginDelete(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  connector, diags := getConnector("server", data)
-  if diags != nil {
-    return diags
-  }
-  connector.Database = data.Get(databaseProp).(string)
+  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "delete").Logger()
+  logger.Debug().Msgf("Delete %s", data.Id())
 
-  username := strings.Split(connector.ID(), "/")[1]
+  database := data.Get(databaseProp).(string)
+  username := data.Get(usernameProp).(string)
+
+  connector, err := GetConnector("server", data)
+  if err != nil {
+    return diag.FromErr(err)
+  }
+  connector.Database = database
 
   if err := connector.DeleteUserLogin(ctx, username); err != nil {
     return diag.FromErr(err)
   }
 
+  // d.SetId("") is automatically called assuming delete returns no errors, but it is added here for explicitness.
+  data.SetId("")
+
   return nil
+}
+
+func resourceUserLoginImport(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "import").Logger()
+  logger.Debug().Msgf("Import %s", data.Id())
+
+  server, u, err := serverFromId(data.Id(), true)
+  if err != nil {
+    return nil, err
+  }
+  if err = data.Set(serverProp, server); err != nil {
+    return nil, err
+  }
+
+  parts := strings.Split(u.Path, "/")
+  if len(parts) != 3 {
+    return nil, errors.New("invalid ID")
+  }
+  if err = data.Set(databaseProp, parts[1]); err != nil {
+    return nil, err
+  }
+  if err = data.Set(usernameProp, parts[2]); err != nil {
+    return nil, err
+  }
+
+  data.SetId(resourceUserLoginGetID(data))
+
+  database := data.Get(databaseProp).(string)
+  username := data.Get(usernameProp).(string)
+
+  connector, err := GetConnector(serverProp, data)
+  if err != nil {
+    return nil, err
+  }
+  connector.Database = database
+
+  login, err := connector.GetUserLogin(ctx, username)
+  if err != nil {
+    return nil, errors.Wrap(err, fmt.Sprintf("unable to read login [%s].[%s] for import", database, username))
+  }
+
+  if login == nil {
+    return nil, errors.Errorf("no login found for user [%s].[%s] for import", connector.Database, username)
+  }
+
+  if err = data.Set(principalIdProp, login.PrincipalID); err != nil {
+    return nil, err
+  }
+  if err = data.Set(schemaProp, login.Schema); err != nil {
+    return nil, err
+  }
+  if err = data.Set(rolesProp, login.Roles); err != nil {
+    return nil, err
+  }
+
+  return []*schema.ResourceData{data}, nil
+}
+
+func resourceUserLoginGetID(data *schema.ResourceData) string {
+  host := data.Get(serverProp + ".0.host").(string)
+  port := data.Get(serverProp + ".0.port").(string)
+  database := data.Get(databaseProp).(string)
+  username := data.Get(usernameProp).(string)
+  return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, username)
 }

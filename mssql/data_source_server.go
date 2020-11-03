@@ -30,14 +30,14 @@ func dataSourceServer() *schema.Resource {
 }
 
 func dataSourceServerRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  connector, diags := createConnector("", data)
-  if len(diags) > 0 {
-    return diags
+  connector, err := GetConnector("", data)
+  if err != nil {
+    return diag.FromErr(err)
   }
 
   encoded, err := json.Marshal(connector)
   if err != nil {
-    return append(diags, diag.FromErr(err)[0])
+    return diag.FromErr(err)
   }
   data.Set("encoded", string(encoded))
 
@@ -49,7 +49,7 @@ func dataSourceServerRead(ctx context.Context, data *schema.ResourceData, meta i
   return nil
 }
 
-func getServerSchema(prefix string, allowAdministratorLogin bool, extensions *map[string]*schema.Schema) map[string]*schema.Schema {
+func getServerSchema(prefix string, allowSqlLogin bool, extensions *map[string]*schema.Schema) map[string]*schema.Schema {
   prefix = getPrefix(prefix)
   s := map[string]*schema.Schema{
     "host": {
@@ -66,7 +66,7 @@ func getServerSchema(prefix string, allowAdministratorLogin bool, extensions *ma
       ForceNew: true,
       Default:  1433,
     },
-    "azure_administrator": {
+    "azure_login": {
       Type:     schema.TypeList,
       MaxItems: 1,
       Required: true,
@@ -75,44 +75,44 @@ func getServerSchema(prefix string, allowAdministratorLogin bool, extensions *ma
           "tenant_id": {
             Type:        schema.TypeString,
             Required:    true,
-            DefaultFunc: schema.EnvDefaultFunc("MSSQL_ADMIN_TENANT_ID", nil),
+            DefaultFunc: schema.EnvDefaultFunc("MSSQL_TENANT_ID", nil),
           },
           "client_id": {
             Type:        schema.TypeString,
             Required:    true,
-            DefaultFunc: schema.EnvDefaultFunc("MSSQL_ADMIN_CLIENT_ID", nil),
+            DefaultFunc: schema.EnvDefaultFunc("MSSQL_CLIENT_ID", nil),
           },
           "client_secret": {
             Type:        schema.TypeString,
             Required:    true,
             Sensitive:   true,
-            DefaultFunc: schema.EnvDefaultFunc("MSSQL_ADMIN_CLIENT_SECRET", nil),
+            DefaultFunc: schema.EnvDefaultFunc("MSSQL_CLIENT_SECRET", nil),
           },
         },
       },
     },
   }
-  if allowAdministratorLogin {
-    s["azure_administrator"].Optional = true
-    s["azure_administrator"].Required = false
-    s["azure_administrator"].ExactlyOneOf = []string{prefix + "administrator_login", prefix + "azure_administrator"}
-    s["administrator_login"] = &schema.Schema{
+  if allowSqlLogin {
+    s["azure_login"].Optional = true
+    s["azure_login"].Required = false
+    s["azure_login"].ExactlyOneOf = []string{prefix + "login", prefix + "azure_login"}
+    s["login"] = &schema.Schema{
       Type:         schema.TypeList,
       MaxItems:     1,
       Optional:     true,
-      ExactlyOneOf: []string{prefix + "administrator_login", prefix + "azure_administrator"},
+      ExactlyOneOf: []string{prefix + "login", prefix + "azure_login"},
       Elem: &schema.Resource{
         Schema: map[string]*schema.Schema{
           "username": {
             Type:        schema.TypeString,
             Required:    true,
-            DefaultFunc: schema.EnvDefaultFunc("MSSQL_ADMIN_USERNAME", nil),
+            DefaultFunc: schema.EnvDefaultFunc("MSSQL_USERNAME", nil),
           },
           "password": {
             Type:        schema.TypeString,
             Required:    true,
             Sensitive:   true,
-            DefaultFunc: schema.EnvDefaultFunc("MSSQL_ADMIN_PASSWORD", nil),
+            DefaultFunc: schema.EnvDefaultFunc("MSSQL_PASSWORD", nil),
           },
         },
       },
@@ -127,14 +127,14 @@ func getServerSchema(prefix string, allowAdministratorLogin bool, extensions *ma
   return s
 }
 
-func serverFromId(id string, allowAdministratorLogin bool) ([]map[string]interface{}, error) {
+func serverFromId(id string, allowLogin bool) ([]map[string]interface{}, *url.URL, error) {
   u, err := url.Parse(id)
   if err != nil {
-    return nil, err
+    return nil, nil, err
   }
 
   if u.Scheme != "sqlserver" && u.Scheme != "mssql" {
-    return nil, errors.New("invalid schema in ID")
+    return nil, nil, errors.New("invalid schema in ID")
   }
 
   host := u.Host
@@ -143,57 +143,57 @@ func serverFromId(id string, allowAdministratorLogin bool) ([]map[string]interfa
   if strings.IndexRune(host, ':') != -1 {
     var err error
     if host, port, err = net.SplitHostPort(u.Host); err != nil {
-      return nil, err
+      return nil, nil, err
     }
   }
 
   values := u.Query()
 
-  administratorLogin, adminInValues := getAdministratorLogin(values)
-  azureAdministrator, azureInValues := getAzureAdministrator(values)
-  if administratorLogin == nil && azureAdministrator == nil {
-    return nil, errors.New("neither administrator login nor azure administrator specified")
+  login, loginInValues := getLogin(values)
+  azureLogin, azureInValues := getAzureLogin(values)
+  if login == nil && azureLogin == nil {
+    return nil, nil, errors.New("neither login nor azure login specified")
   }
-  if adminInValues && azureInValues {
-    return nil, errors.New("both administrator login and azure administrator specified in resource")
+  if loginInValues && azureInValues {
+    return nil, nil, errors.New("both login and azure login specified in resource")
   }
-  if administratorLogin != nil && azureAdministrator != nil {
-    // prefer azure administrator login
-    administratorLogin = nil
+  if login != nil && azureLogin != nil {
+    // prefer azure login
+    login = nil
   }
 
-  if allowAdministratorLogin {
+  if allowLogin {
     return []map[string]interface{}{{
-      "host":                host,
-      "port":                port,
-      "administrator_login": administratorLogin,
-      "azure_administrator": azureAdministrator,
-    }}, nil
+      "host":        host,
+      "port":        port,
+      "login":       login,
+      "azure_login": azureLogin,
+    }}, u, nil
   }
 
-  if azureAdministrator == nil {
-    return nil, errors.New("this resource requires azure administrator")
+  if azureLogin == nil {
+    return nil, nil, errors.New("this resource requires azure login")
   }
   return []map[string]interface{}{{
-    "host":                host,
-    "port":                port,
-    "azure_administrator": azureAdministrator,
-  }}, nil
+    "host":        host,
+    "port":        port,
+    "azure_login": azureLogin,
+  }}, u, nil
 }
 
-func getAdministratorLogin(values url.Values) ([]map[string]interface{}, bool) {
+func getLogin(values url.Values) ([]map[string]interface{}, bool) {
   var inValues bool
 
-  username := values.Get("admin_username")
+  username := values.Get("username")
   if username == "" {
-    username = os.Getenv("MSSQL_ADMIN_USERNAME")
+    username = os.Getenv("MSSQL_USERNAME")
   } else {
     inValues = true
   }
 
-  password := values.Get("admin_password")
+  password := values.Get("password")
   if password == "" {
-    password = os.Getenv("MSSQL_ADMIN_PASSWORD")
+    password = os.Getenv("MSSQL_PASSWORD")
   } else {
     inValues = true
   }
@@ -208,26 +208,26 @@ func getAdministratorLogin(values url.Values) ([]map[string]interface{}, bool) {
   }}, inValues
 }
 
-func getAzureAdministrator(values url.Values) ([]map[string]interface{}, bool) {
+func getAzureLogin(values url.Values) ([]map[string]interface{}, bool) {
   var inValues bool
 
-  tenantId := values.Get("admin_tenant_id")
+  tenantId := values.Get("tenant_id")
   if tenantId == "" {
-    tenantId = os.Getenv("MSSQL_ADMIN_TENANT_ID")
+    tenantId = os.Getenv("MSSQL_TENANT_ID")
   } else {
     inValues = true
   }
 
-  clientId := values.Get("admin_client_id")
+  clientId := values.Get("client_id")
   if clientId == "" {
-    clientId = os.Getenv("MSSQL_ADMIN_CLIENT_ID")
+    clientId = os.Getenv("MSSQL_CLIENT_ID")
   } else {
     inValues = true
   }
 
-  clientSecret := values.Get("admin_client_secret")
+  clientSecret := values.Get("client_secret")
   if clientSecret == "" {
-    clientSecret = os.Getenv("MSSQL_ADMIN_CLIENT_SECRET")
+    clientSecret = os.Getenv("MSSQL_CLIENT_SECRET")
   } else {
     inValues = true
   }
@@ -243,53 +243,15 @@ func getAzureAdministrator(values url.Values) ([]map[string]interface{}, bool) {
   }}, inValues
 }
 
-func getConnector(prefix string, data *schema.ResourceData) (*sql.Connector, diag.Diagnostics) {
+func GetConnector(prefix string, data *schema.ResourceData) (*sql.Connector, error) {
   if encoded, isOk := data.GetOk(prefix + "_encoded"); isOk {
     c := &sql.Connector{}
     err := json.Unmarshal([]byte(encoded.(string)), c)
     if err != nil {
-      return nil, diag.FromErr(err)
+      return nil, err
     }
     return c, nil
   }
-
-  return createConnector(prefix, data)
-}
-
-func createConnector(prefix string, data *schema.ResourceData) (*sql.Connector, diag.Diagnostics) {
-  prefix = getPrefix(prefix)
-
-  // Warnings or errors can be collected in a slice type
-  var diags diag.Diagnostics
-
-  connector := &sql.Connector{
-    Host:    data.Get(prefix + "host").(string),
-    Port:    data.Get(prefix + "port").(string),
-    Timeout: data.Timeout(schema.TimeoutRead),
-  }
-
-  if admin, ok := data.GetOk(prefix + "administrator_login.0"); ok {
-    admin := admin.(map[string]interface{})
-    connector.Administrator = &sql.AdministratorLogin{
-      Username: admin["username"].(string),
-      Password: admin["password"].(string),
-    }
-  }
-
-  if admin, ok := data.GetOk(prefix + "azure_administrator.0"); ok {
-    admin := admin.(map[string]interface{})
-
-    connector.AzureAdministrator = &sql.AzureAdministrator{
-      TenantID:     admin["tenant_id"].(string),
-      ClientID:     admin["client_id"].(string),
-      ClientSecret: admin["client_secret"].(string),
-    }
-  }
-
-  return connector, diags
-}
-
-func GetConnector(prefix string, data *schema.ResourceData) *sql.Connector {
   prefix = getPrefix(prefix)
 
   connector := &sql.Connector{
@@ -298,24 +260,24 @@ func GetConnector(prefix string, data *schema.ResourceData) *sql.Connector {
     Timeout: data.Timeout(schema.TimeoutRead),
   }
 
-  if admin, ok := data.GetOk(prefix + "administrator_login.0"); ok {
+  if admin, ok := data.GetOk(prefix + "login.0"); ok {
     admin := admin.(map[string]interface{})
-    connector.Administrator = &sql.AdministratorLogin{
+    connector.Login = &sql.LoginUser{
       Username: admin["username"].(string),
       Password: admin["password"].(string),
     }
   }
 
-  if admin, ok := data.GetOk(prefix + "azure_administrator.0"); ok {
+  if admin, ok := data.GetOk(prefix + "azure_login.0"); ok {
     admin := admin.(map[string]interface{})
-    connector.AzureAdministrator = &sql.AzureAdministrator{
+    connector.AzureLogin = &sql.AzureLogin{
       TenantID:     admin["tenant_id"].(string),
       ClientID:     admin["client_id"].(string),
       ClientSecret: admin["client_secret"].(string),
     }
   }
 
-  return connector
+  return connector, nil
 }
 
 func getPrefix(prefix string) string {

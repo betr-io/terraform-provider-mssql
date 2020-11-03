@@ -3,144 +3,107 @@ package sql
 import (
   "context"
   "database/sql"
-  "fmt"
-  "github.com/google/uuid"
-  gouuid "github.com/hashicorp/go-uuid"
-  "strings"
 )
 
 type Login struct {
-  PrincipalID int64
-  Type        string
-  Username    string
-  SID         uuid.UUID
-  Schema      string
-  Roles       []string
+  PrincipalID     int64
+  LoginName       string
+  DefaultDatabase string
+  DefaultLanguage string
 }
 
-func (c *Connector) GetUserLogin(ctx context.Context, username string) (*Login, error) {
-  cmd := `WITH CTE_Roles (role_principal_id) AS
-          (
-              SELECT role_principal_id FROM sys.database_role_members WHERE member_principal_id = DATABASE_PRINCIPAL_ID(@username)
-              UNION ALL
-              SELECT drm.role_principal_id FROM sys.database_role_members drm
-                  INNER JOIN CTE_Roles CR ON drm.member_principal_id = CR.role_principal_id
-         )
-         SELECT p.principal_id, p.type, p.default_schema_name, p.sid, STRING_AGG(USER_NAME(r.role_principal_id), ',') FROM sys.database_principals p, CTE_Roles r
-         WHERE p.name = @username
-         GROUP BY p.principal_id, p.type, p.default_schema_name, p.sid;`
-  var principalID int64 = -1
-  var typ, schema string
-  var bytes []byte
-  var roles string
-
-  err := c.QueryContext(
-    ctx,
-    cmd,
-    func(r *sql.Rows) error {
-      for r.Next() {
-        err := r.Scan(&principalID, &typ, &schema, &bytes, &roles)
-        if err != nil {
-          return err
-        }
-      }
-      return nil
+func (c *Connector) GetLogin(ctx context.Context, name string) (*Login, error) {
+  var login Login
+  err := c.QueryRowContext(ctx,
+    "SELECT principal_id, name, default_database_name, default_language_name FROM [master].[sys].[sql_logins] WHERE [name] = @name",
+    func(r *sql.Row) error {
+      return r.Scan(&login.PrincipalID, &login.LoginName, &login.DefaultDatabase, &login.DefaultLanguage)
     },
-    sql.Named("username", username),
+    sql.Named("name", name),
   )
-
   if err != nil {
+    if err == sql.ErrNoRows {
+      return nil, nil
+    }
     return nil, err
   }
-
-  var sid uuid.UUID
-  if len(bytes) > 0 {
-    sid, err = uuid.FromBytes(bytes)
-    if err != nil {
-      return nil, err
-    }
-  }
-  if principalID != -1 {
-    return &Login{
-      PrincipalID: principalID,
-      Type:        typ,
-      Username:    username,
-      SID:         sid,
-      Schema:      schema,
-      Roles:       strings.Split(roles, ","),
-    }, nil
-  }
-
-  return nil, nil
+  return &login, nil
 }
 
-func (c *Connector) CreateUserLogin(ctx context.Context, database, username, password string) error {
-  cmd := `DECLARE @stmt nvarchar(max)
-          SET @stmt = 'CREATE LOGIN ' + QuoteName(@username) + ' ' +
-                      'WITH PASSWORD = ' + QuoteName(@password, '''') + ', ' +
-                      'DEFAULT_DATABASE = ' + QuoteName(@database)
-          EXEC (@stmt)`
-  return c.ExecContext(ctx, cmd, sql.Named("database", database), sql.Named("username", username), sql.Named("password", password))
-}
-
-func (c *Connector) UpdateUserLogin(ctx context.Context, username string, password string) error {
+func (c *Connector) CreateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error {
   cmd := `DECLARE @sql nvarchar(max)
-          SET @sql = 'IF EXISTS (SELECT 1 FROM [master].[sys].[server_principals] WHERE [name] = ' + QuoteName(@username, '''') + ') ' +
-                     'ALTER LOGIN ' + QuoteName(@username) + ' ' +
+          SET @sql = 'CREATE LOGIN ' + QuoteName(@name) + ' ' +
                      'WITH PASSWORD = ' + QuoteName(@password, '''')
+          IF NOT @defaultDatabase IN ('', 'master')
+          BEGIN
+            SET @sql = @sql + ', DEFAULT_DATABASE = ' + QuoteName(@defaultDatabase)
+          END
+          DECLARE @serverLanguage nvarchar(max) = (SELECT lang.name FROM [sys].[configurations] c INNER JOIN [sys].[syslanguages] lang ON c.[value] = lang.langid WHERE c.name = 'default language')
+          IF NOT @defaultLanguage IN ('', @serverLanguage)
+          BEGIN
+            SET @sql = @sql + ', DEFAULT_LANGUAGE = ' + QuoteName(@defaultLanguage)
+          END
           EXEC (@sql)`
-  return c.ExecContext(ctx, cmd, sql.Named("username", username), sql.Named("password", password))
+  return c.ExecContext(ctx, cmd,
+    sql.Named("name", name),
+    sql.Named("password", password),
+    sql.Named("defaultDatabase", defaultDatabase),
+    sql.Named("defaultLanguage", defaultLanguage))
 }
 
-func (c *Connector) DeleteUserLogin(ctx context.Context, username string) error {
+func (c *Connector) UpdateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error {
   cmd := `DECLARE @sql nvarchar(max)
-          SET @sql = 'IF EXISTS (SELECT 1 FROM [master].[sys].[server_principals] WHERE [name] = ' + QuoteName(@username, '''') + ') ' +
-                     'DROP LOGIN ' + QuoteName(@username)
+          SET @sql = 'IF EXISTS (SELECT 1 FROM [master].[sys].[sql_logins] WHERE [name] = ' + QuoteName(@name, '''') + ') ' +
+                     'ALTER LOGIN ' + QuoteName(@name) + ' ' +
+                     'WITH PASSWORD = ' + QuoteName(@password, '''')
+          IF @defaultDatabase = '' SET @defaultDatabase = 'master'
+          IF NOT @defaultDatabase IN (SELECT default_database_name FROM [master].[sys].[sql_logins] WHERE [name] = @name)
+          BEGIN
+            SET @sql = @sql + ', DEFAULT_DATABASE = ' + QuoteName(@defaultDatabase)
+          END
+          DECLARE @language nvarchar(max) = @defaultLanguage
+          IF @language = '' SET @language = (SELECT lang.name FROM [sys].[configurations] c INNER JOIN [sys].[syslanguages] lang ON c.[value] = lang.langid WHERE c.name = 'default language')
+          IF @language != (SELECT default_language_name FROM [master].[sys].[sql_logins] WHERE [name] = @name)
+          BEGIN
+            SET @sql = @sql + ', DEFAULT_LANGUAGE = ' + QuoteName(@language)
+          END
           EXEC (@sql)`
-  return c.ExecContext(ctx, cmd, sql.Named("username", username))
+  return c.ExecContext(ctx, cmd,
+    sql.Named("name", name),
+    sql.Named("password", password),
+    sql.Named("defaultDatabase", defaultDatabase),
+    sql.Named("defaultLanguage", defaultLanguage))
 }
 
-func (c *Connector) CreateAzureADLogin(ctx context.Context, username, sid, schema string, roles []interface{}) error {
-  sid, err := convertToSid(sid)
-  if err != nil {
+func (c *Connector) DeleteLogin(ctx context.Context, name string) error {
+  if err := c.killSessionsForLogin(ctx, name); err != nil {
     return err
   }
-  dbRoles := make([]string, len(roles))
-  for i, v := range roles {
-    dbRoles[i] = v.(string)
-  }
-  cmd := `DECLARE @stmt nvarchar(max)
-          SET @stmt = 'IF NOT EXISTS(SELECT 1 FROM sys.database_principals WHERE name = ' + QuoteName(@username, '''') + ') ' +
-                      '  BEGIN ' +
-                      '    CREATE USER ' + QuoteName(@username) + ' WITH DEFAULT_SCHEMA=' + QuoteName(@schema) + ', SID = ' + @sid + ', TYPE = E;' +
-                      '    DECLARE role_cur CURSOR FOR SELECT value FROM String_Split(''' @roles ''', '','');' +
-                      '    DECLARE @role nvarchar(100);' +
-                      '    OPEN role_cur;' +
-                      '    FETCH NEXT FROM role_cur INTO @role;' +
-                      '    WHILE @@FETCH_STATUS = 0' +
-                      '      BEGIN' +
-                      '        IF EXISTS(SELECT 1 FROM sys.database_principals WHERE )' +
-                      '          BEGIN' +
-                      '            ALTER ROLE ' + QuoteName(@role) + ' ADD MEMBER ' + QuoteName(@username) + ';' +
-                      '          END;' +
-                      '        FETCH NEXT FROM role_cur INTO @role;' +
-                      '      END;' +
-                      '    CLOSE role_cur;' +
-                      '    DEALLOCATE role_cur;' +
-                      '    SELECT 1;' +
-                      '  END' +
-                      'ELSE ' +
-                      '  BEGIN' +
-                      '    SELECT 0;' +
-                      '  END;' +
-          EXEC(@stmt)`
-  return c.ExecContext(ctx, cmd, sql.Named("username", username), sql.Named("schema", schema), sql.Named("sid", sid), sql.Named("roles", strings.Join(dbRoles, ",")))
+  cmd := `DECLARE @sql nvarchar(max)
+          SET @sql = 'IF EXISTS (SELECT 1 FROM [master].[sys].[sql_logins] WHERE [name] = ' + QuoteName(@name, '''') + ') ' +
+                     'DROP LOGIN ' + QuoteName(@name)
+          EXEC (@sql)`
+  return c.ExecContext(ctx, cmd, sql.Named("name", name))
 }
 
-func convertToSid(s string) (string, error) {
-  u, err := gouuid.ParseUUID(s)
-  if err != nil {
-    return "", err
-  }
-  return fmt.Sprintf("0x%x", u), nil
+func (c *Connector) killSessionsForLogin(ctx context.Context, name string) error {
+  cmd := `-- adapted from https://stackoverflow.com/a/5178097/38055
+          DECLARE sessionsToKill CURSOR FAST_FORWARD FOR
+            SELECT session_id
+            FROM sys.dm_exec_sessions
+            WHERE login_name = @name
+          OPEN sessionsToKill
+          DECLARE @sessionId INT
+          DECLARE @statement NVARCHAR(200)
+          FETCH NEXT FROM sessionsToKill INTO @sessionId
+          WHILE @@FETCH_STATUS = 0
+          BEGIN
+            PRINT 'Killing session ' + CAST(@sessionId AS NVARCHAR(20)) + ' for login ' + @name
+            SET @statement = 'KILL ' + CAST(@sessionId AS NVARCHAR(20))
+            EXEC sp_executesql @statement
+            FETCH NEXT FROM sessionsToKill INTO @sessionId
+          END
+          CLOSE sessionsToKill
+          DEALLOCATE sessionsToKill`
+  return c.ExecContext(ctx, cmd, sql.Named("name", name))
 }

@@ -32,13 +32,13 @@ func NewProvider() *schema.Provider {
       },
     },
     ResourcesMap: map[string]*schema.Resource{
+      "mssql_login":      resourceLogin(),
       "mssql_user_login": resourceUserLogin(),
-      //"mssql_az_user_login": nil,
       "mssql_az_sp_login": resourceAzSpLogin(),
     },
     DataSourcesMap: map[string]*schema.Resource{
-      "mssql_server":   dataSourceServer(),
-      "mssql_roles":    dataSourceRoles(),
+      "mssql_server": dataSourceServer(),
+      "mssql_roles":  dataSourceRoles(),
     },
     ConfigureContextFunc: providerConfigure,
   }
