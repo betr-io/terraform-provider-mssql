@@ -14,5 +14,5 @@ func getLoginID(data *schema.ResourceData) string {
 }
 
 func loggerFromMeta(meta interface{}, resource, function string) zerolog.Logger {
-  return meta.(Provider).logger.With().Str("resource", resource).Str("func", function).Logger()
+  return meta.(Provider).ResourceLogger(resource, function)
 }

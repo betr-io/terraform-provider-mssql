@@ -4,19 +4,72 @@ import (
   "context"
   "database/sql"
   "database/sql/driver"
+  "encoding/json"
   "fmt"
   "github.com/Azure/go-autorest/autorest/adal"
   "github.com/Azure/go-autorest/autorest/azure"
   mssql "github.com/denisenkom/go-mssqldb"
+  "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
   "log"
   "net"
   "net/url"
   "strings"
+  mssql2 "terraform-provider-mssql/mssql"
   "time"
 )
 
 const DefaultPort = "1433"
+
+type factory struct{}
+
+func GetFactory() mssql2.ConnectorFactory {
+  return new(factory)
+}
+
+func (f factory) GetConnector(prefix string, data *schema.ResourceData) (interface{}, error) {
+  if encoded, isOk := data.GetOk(prefix + "_encoded"); isOk {
+    c := &Connector{}
+    err := json.Unmarshal([]byte(encoded.(string)), c)
+    if err != nil {
+      return nil, err
+    }
+    return c, nil
+  }
+  prefix = getPrefix(prefix)
+
+  connector := &Connector{
+    Host:    data.Get(prefix + "host").(string),
+    Port:    data.Get(prefix + "port").(string),
+    Timeout: data.Timeout(schema.TimeoutRead),
+  }
+
+  if admin, ok := data.GetOk(prefix + "login.0"); ok {
+    admin := admin.(map[string]interface{})
+    connector.Login = &LoginUser{
+      Username: admin["username"].(string),
+      Password: admin["password"].(string),
+    }
+  }
+
+  if admin, ok := data.GetOk(prefix + "azure_login.0"); ok {
+    admin := admin.(map[string]interface{})
+    connector.AzureLogin = &AzureLogin{
+      TenantID:     admin["tenant_id"].(string),
+      ClientID:     admin["client_id"].(string),
+      ClientSecret: admin["client_secret"].(string),
+    }
+  }
+
+  return connector, nil
+}
+
+func getPrefix(prefix string) string {
+  if len(prefix) > 0 {
+    return prefix + ".0."
+  }
+  return prefix
+}
 
 type Connector struct {
   Host       string `json:"host"`

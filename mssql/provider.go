@@ -12,8 +12,19 @@ import (
   "time"
 )
 
-type Provider struct {
-  logger *zerolog.Logger
+type ConnectorFactory interface {
+  GetConnector(prefix string, data *schema.ResourceData) (interface{}, error)
+}
+
+type Provider interface {
+  GetConnector(prefix string, data *schema.ResourceData) (interface{}, error)
+  ResourceLogger(resource, function string) zerolog.Logger
+  DataSourceLogger(datasource, function string) zerolog.Logger
+}
+
+type mssqlProvider struct {
+  factory ConnectorFactory
+  logger  *zerolog.Logger
 }
 
 var defaultReadTimeout = schema.DefaultTimeout(30 * time.Second)
@@ -21,7 +32,7 @@ var defaultReadTimeout = schema.DefaultTimeout(30 * time.Second)
 const providerLogFile = "terraform-provider-mssql.log"
 
 // NewProvider -
-func NewProvider() *schema.Provider {
+func NewProvider(factory ConnectorFactory) *schema.Provider {
   return &schema.Provider{
     Schema: map[string]*schema.Schema{
       "debug": {
@@ -32,25 +43,39 @@ func NewProvider() *schema.Provider {
       },
     },
     ResourcesMap: map[string]*schema.Resource{
-      "mssql_login":      resourceLogin(),
-      "mssql_user_login": resourceUserLogin(),
+      "mssql_login":       resourceLogin(),
+      "mssql_user_login":  resourceUserLogin(),
       "mssql_az_sp_login": resourceAzSpLogin(),
     },
     DataSourcesMap: map[string]*schema.Resource{
       "mssql_server": dataSourceServer(),
       "mssql_roles":  dataSourceRoles(),
     },
-    ConfigureContextFunc: providerConfigure,
+    ConfigureContextFunc: func(ctx context.Context, data *schema.ResourceData) (interface{}, diag.Diagnostics) {
+      return providerConfigure(ctx, data, factory)
+    },
   }
 }
 
-func providerConfigure(ctx context.Context, data *schema.ResourceData) (interface{}, diag.Diagnostics) {
+func providerConfigure(ctx context.Context, data *schema.ResourceData, factory ConnectorFactory) (Provider, diag.Diagnostics) {
   isDebug := data.Get("debug").(bool)
   logger := newLogger(isDebug)
 
   logger.Info().Msg("Created provider")
 
-  return Provider{logger: logger}, nil
+  return mssqlProvider{factory: factory, logger: logger}, nil
+}
+
+func (p mssqlProvider) GetConnector(prefix string, data *schema.ResourceData) (interface{}, error) {
+  return p.factory.GetConnector(prefix, data)
+}
+
+func (p mssqlProvider) ResourceLogger(resource, function string) zerolog.Logger {
+  return p.logger.With().Str("resource", resource).Str("func", function).Logger()
+}
+
+func (p mssqlProvider) DataSourceLogger(datasource, function string) zerolog.Logger {
+  return p.logger.With().Str("datasource", datasource).Str("func", function).Logger()
 }
 
 func newLogger(isDebug bool) *zerolog.Logger {

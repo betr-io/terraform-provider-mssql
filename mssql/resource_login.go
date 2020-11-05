@@ -11,7 +11,22 @@ import (
 
 const loginNameProp = "login_name"
 const defaultDatabaseProp = "default_database"
+const defaultDatabaseDefault = "master"
 const defaultLanguageProp = "default_language"
+
+type Login struct {
+  PrincipalID     int64
+  LoginName       string
+  DefaultDatabase string
+  DefaultLanguage string
+}
+
+type LoginConnector interface {
+  CreateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error
+  GetLogin(ctx context.Context, name string) (*Login, error)
+  UpdateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error
+  DeleteLogin(ctx context.Context, name string) error
+}
 
 func resourceLogin() *schema.Resource {
   return &schema.Resource{
@@ -55,9 +70,9 @@ func resourceLogin() *schema.Resource {
       defaultDatabaseProp: {
         Type:     schema.TypeString,
         Optional: true,
-        Default:  "master",
+        Default:  defaultDatabaseDefault,
         DiffSuppressFunc: func(k, old, new string, data *schema.ResourceData) bool {
-          return (old == "" && new == "master") || (old == "master" && new == "")
+          return (old == "" && new == defaultDatabaseDefault) || (old == defaultDatabaseDefault && new == "")
         },
       },
       defaultLanguageProp: {
@@ -80,7 +95,7 @@ func resourceLoginCreate(ctx context.Context, data *schema.ResourceData, meta in
   defaultDatabase := data.Get(defaultDatabaseProp).(string)
   defaultLanguage := data.Get(defaultLanguageProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getLoginConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -102,7 +117,7 @@ func resourceLoginRead(ctx context.Context, data *schema.ResourceData, meta inte
 
   loginName := data.Get(loginNameProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getLoginConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -138,7 +153,7 @@ func resourceLoginUpdate(ctx context.Context, data *schema.ResourceData, meta in
   defaultDatabase := data.Get(defaultDatabaseProp).(string)
   defaultLanguage := data.Get(defaultLanguageProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getLoginConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -158,7 +173,7 @@ func resourceLoginDelete(ctx context.Context, data *schema.ResourceData, meta in
 
   loginName := data.Get(loginNameProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getLoginConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -199,7 +214,7 @@ func resourceLoginImport(ctx context.Context, data *schema.ResourceData, meta in
 
   loginName := data.Get(loginNameProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getLoginConnector(meta, serverProp, data)
   if err != nil {
     return nil, err
   }
@@ -224,4 +239,13 @@ func resourceLoginImport(ctx context.Context, data *schema.ResourceData, meta in
   }
 
   return []*schema.ResourceData{data}, nil
+}
+
+func getLoginConnector(meta interface{}, prefix string, data *schema.ResourceData) (LoginConnector, error) {
+  provider := meta.(Provider)
+  connector, err := provider.GetConnector(prefix, data)
+  if err != nil {
+    return nil, err
+  }
+  return connector.(LoginConnector), nil
 }

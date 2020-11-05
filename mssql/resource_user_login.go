@@ -11,6 +11,15 @@ import (
 
 const serverEncodedProp = "server_encoded"
 
+type UserLoginConnector interface {
+  GetDatabase() string
+  SetDatabase(database string)
+  CreateUserLogin(ctx context.Context, database, username, password, schema string, roles []interface{}) error
+  GetUserLogin(ctx context.Context, username string) (*UserLogin, error)
+  UpdateUserLogin(ctx context.Context, username string, password string) error
+  DeleteUserLogin(ctx context.Context, username string) error
+}
+
 func resourceUserLogin() *schema.Resource {
   return &schema.Resource{
     CreateContext: resourceUserLoginCreate,
@@ -75,7 +84,7 @@ func resourceUserLogin() *schema.Resource {
 }
 
 func resourceUserLoginCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "create").Logger()
+  logger := loggerFromMeta(meta, "user_login", "create")
   logger.Debug().Msgf("Create %s", resourceAzSpLoginGetID(data))
 
   database := data.Get(databaseProp).(string)
@@ -84,11 +93,11 @@ func resourceUserLoginCreate(ctx context.Context, data *schema.ResourceData, met
   defSchema := data.Get(schemaProp).(string)
   roles := data.Get(rolesProp).([]interface{})
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getUserLoginConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
-  connector.Database = database
+  connector.SetDatabase(database)
 
   if err = connector.CreateUserLogin(ctx, database, username, password, defSchema, roles); err != nil {
     return diag.FromErr(errors.Wrap(err, fmt.Sprintf("unable to create login [%s].[%s]", database, username)))
@@ -102,24 +111,24 @@ func resourceUserLoginCreate(ctx context.Context, data *schema.ResourceData, met
 }
 
 func resourceUserLoginRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "read").Logger()
+  logger := loggerFromMeta(meta, "user_login", "read")
   logger.Debug().Msgf("Read %s", resourceUserLoginGetID(data))
 
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getUserLoginConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
-  connector.Database = database
+  connector.SetDatabase(database)
 
   login, err := connector.GetUserLogin(ctx, username)
   if err != nil {
     return diag.FromErr(errors.Wrap(err, fmt.Sprintf("unable to read login [%s].[%s]", database, username)))
   }
   if login == nil {
-    logger.Info().Msgf("No login found for user [%s].[%s]'", connector.Database, username)
+    logger.Info().Msgf("No login found for user [%s].[%s]'", connector.GetDatabase(), username)
     data.SetId("")
   } else {
     if err = data.Set(principalIdProp, login.PrincipalID); err != nil {
@@ -137,18 +146,18 @@ func resourceUserLoginRead(ctx context.Context, data *schema.ResourceData, meta 
 }
 
 func resourceUserLoginUpdate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "update").Logger()
+  logger := loggerFromMeta(meta, "user_login", "update")
   logger.Debug().Msgf("Update %s", data.Id())
 
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
   password := data.Get(passwordProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getUserLoginConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
-  connector.Database = database
+  connector.SetDatabase(database)
 
   if err := connector.UpdateUserLogin(ctx, username, password); err != nil {
     return diag.FromErr(err)
@@ -158,17 +167,17 @@ func resourceUserLoginUpdate(ctx context.Context, data *schema.ResourceData, met
 }
 
 func resourceUserLoginDelete(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "delete").Logger()
+  logger := loggerFromMeta(meta, "user_login", "delete")
   logger.Debug().Msgf("Delete %s", data.Id())
 
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector, err := GetConnector("server", data)
+  connector, err := getUserLoginConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
-  connector.Database = database
+  connector.SetDatabase(database)
 
   if err := connector.DeleteUserLogin(ctx, username); err != nil {
     return diag.FromErr(err)
@@ -181,7 +190,7 @@ func resourceUserLoginDelete(ctx context.Context, data *schema.ResourceData, met
 }
 
 func resourceUserLoginImport(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-  logger := meta.(Provider).logger.With().Str("resource", "user_login").Str("func", "import").Logger()
+  logger := loggerFromMeta(meta, "user_login", "import")
   logger.Debug().Msgf("Import %s", data.Id())
 
   server, u, err := serverFromId(data.Id(), true)
@@ -208,11 +217,11 @@ func resourceUserLoginImport(ctx context.Context, data *schema.ResourceData, met
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getUserLoginConnector(meta, serverProp, data)
   if err != nil {
     return nil, err
   }
-  connector.Database = database
+  connector.SetDatabase(database)
 
   login, err := connector.GetUserLogin(ctx, username)
   if err != nil {
@@ -220,7 +229,7 @@ func resourceUserLoginImport(ctx context.Context, data *schema.ResourceData, met
   }
 
   if login == nil {
-    return nil, errors.Errorf("no login found for user [%s].[%s] for import", connector.Database, username)
+    return nil, errors.Errorf("no login found for user [%s].[%s] for import", connector.GetDatabase(), username)
   }
 
   if err = data.Set(principalIdProp, login.PrincipalID); err != nil {
@@ -242,4 +251,13 @@ func resourceUserLoginGetID(data *schema.ResourceData) string {
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
   return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, username)
+}
+
+func getUserLoginConnector(meta interface{}, prefix string, data *schema.ResourceData) (UserLoginConnector, error) {
+  provider := meta.(Provider)
+  connector, err := provider.GetConnector(prefix, data)
+  if err != nil {
+    return nil, err
+  }
+  return connector.(UserLoginConnector), nil
 }

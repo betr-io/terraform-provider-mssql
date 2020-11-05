@@ -7,18 +7,10 @@ import (
   "fmt"
   "github.com/google/uuid"
   "strings"
+  "terraform-provider-mssql/mssql"
 )
 
-type UserLogin struct {
-  PrincipalID int64
-  Type        string
-  Username    string
-  SID         uuid.UUID
-  Schema      string
-  Roles       []string
-}
-
-func (c *Connector) GetUserLogin(ctx context.Context, username string) (*UserLogin, error) {
+func (c *Connector) GetUserLogin(ctx context.Context, username string) (*mssql.UserLogin, error) {
   cmd := `WITH CTE_Roles (role_principal_id) AS
           (
               SELECT role_principal_id FROM sys.database_role_members WHERE member_principal_id = DATABASE_PRINCIPAL_ID(@username)
@@ -65,7 +57,7 @@ func (c *Connector) GetUserLogin(ctx context.Context, username string) (*UserLog
     }
   }
   if principalID != -1 {
-    return &UserLogin{
+    return &mssql.UserLogin{
       PrincipalID: principalID,
       Type:        typ,
       Username:    username,
@@ -76,6 +68,14 @@ func (c *Connector) GetUserLogin(ctx context.Context, username string) (*UserLog
   }
 
   return nil, nil
+}
+
+func (c *Connector) GetDatabase() string {
+  return c.Database
+}
+
+func (c *Connector) SetDatabase(database string) {
+  c.Database = database
 }
 
 func (c *Connector) CreateUserLogin(ctx context.Context, database, username, password, schema string, roles []interface{}) error {

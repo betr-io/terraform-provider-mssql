@@ -10,8 +10,27 @@ import (
   "net/url"
   "os"
   "strings"
-  "terraform-provider-mssql/sql"
 )
+
+type ServerConnector interface {
+  ID() string
+}
+
+func getServerConnector(meta interface{}, prefix string, data *schema.ResourceData) (ServerConnector, error) {
+  provider := meta.(Provider)
+  connector, err := provider.GetConnector(prefix, data)
+  if err != nil {
+    return nil, err
+  }
+  return connector.(ServerConnector), nil
+}
+
+func getPrefix(prefix string) string {
+  if len(prefix) > 0 {
+    return prefix + ".0."
+  }
+  return prefix
+}
 
 func dataSourceServer() *schema.Resource {
   return &schema.Resource{
@@ -30,7 +49,7 @@ func dataSourceServer() *schema.Resource {
 }
 
 func dataSourceServerRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  connector, err := GetConnector("", data)
+  connector, err := getServerConnector(meta, "", data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -41,7 +60,7 @@ func dataSourceServerRead(ctx context.Context, data *schema.ResourceData, meta i
   }
   data.Set("encoded", string(encoded))
 
-  logger := meta.(Provider).logger
+  logger := meta.(Provider).DataSourceLogger("server", "read")
   logger.Info().Msgf("Created connector for %s", connector.ID())
 
   data.SetId(connector.ID())
@@ -127,6 +146,7 @@ func getServerSchema(prefix string, allowSqlLogin bool, extensions *map[string]*
   return s
 }
 
+const DefaultPort = "1433"
 func serverFromId(id string, allowLogin bool) ([]map[string]interface{}, *url.URL, error) {
   u, err := url.Parse(id)
   if err != nil {
@@ -138,7 +158,7 @@ func serverFromId(id string, allowLogin bool) ([]map[string]interface{}, *url.UR
   }
 
   host := u.Host
-  port := sql.DefaultPort
+  port := DefaultPort
 
   if strings.IndexRune(host, ':') != -1 {
     var err error
@@ -241,48 +261,4 @@ func getAzureLogin(values url.Values) ([]map[string]interface{}, bool) {
     "client_id":     clientId,
     "client_secret": clientSecret,
   }}, inValues
-}
-
-func GetConnector(prefix string, data *schema.ResourceData) (*sql.Connector, error) {
-  if encoded, isOk := data.GetOk(prefix + "_encoded"); isOk {
-    c := &sql.Connector{}
-    err := json.Unmarshal([]byte(encoded.(string)), c)
-    if err != nil {
-      return nil, err
-    }
-    return c, nil
-  }
-  prefix = getPrefix(prefix)
-
-  connector := &sql.Connector{
-    Host:    data.Get(prefix + "host").(string),
-    Port:    data.Get(prefix + "port").(string),
-    Timeout: data.Timeout(schema.TimeoutRead),
-  }
-
-  if admin, ok := data.GetOk(prefix + "login.0"); ok {
-    admin := admin.(map[string]interface{})
-    connector.Login = &sql.LoginUser{
-      Username: admin["username"].(string),
-      Password: admin["password"].(string),
-    }
-  }
-
-  if admin, ok := data.GetOk(prefix + "azure_login.0"); ok {
-    admin := admin.(map[string]interface{})
-    connector.AzureLogin = &sql.AzureLogin{
-      TenantID:     admin["tenant_id"].(string),
-      ClientID:     admin["client_id"].(string),
-      ClientSecret: admin["client_secret"].(string),
-    }
-  }
-
-  return connector, nil
-}
-
-func getPrefix(prefix string) string {
-  if len(prefix) > 0 {
-    return prefix + ".0."
-  }
-  return prefix
 }

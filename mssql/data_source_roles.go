@@ -2,13 +2,19 @@ package mssql
 
 import (
   "context"
-  sql2 "database/sql"
+  "database/sql"
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
   "strconv"
   "time"
 )
+
+type RawConnector interface {
+  GetDatabase() string
+  SetDatabase(database string)
+  QueryContext(ctx context.Context, query string, scanner func(*sql.Rows) error, args ...interface{}) error
+}
 
 func dataSourceRoles() *schema.Resource {
   return &schema.Resource{
@@ -55,17 +61,17 @@ func dataSourceRoles() *schema.Resource {
 }
 
 func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger.With().Str("datasource", "roles").Str("func", "read").Logger()
+  logger := meta.(Provider).DataSourceLogger("roles", "read")
   logger.Debug().Msgf("read %s", data.Id())
 
-  connector, err := GetConnector("server", data)
+  connector, err := getRawConnector(meta, "server", data)
   if err != nil {
     return diag.FromErr(err)
   }
-  connector.Database = data.Get("database").(string)
+  connector.SetDatabase(data.Get("database").(string))
 
   roles := make([]map[string]interface{}, 0)
-  err = connector.QueryContext(ctx, "SELECT uid, name FROM [sys].[sysusers] WHERE [issqlrole] = 1", func(r *sql2.Rows) error {
+  err = connector.QueryContext(ctx, "SELECT uid, name FROM [sys].[sysusers] WHERE [issqlrole] = 1", func(r *sql.Rows) error {
     for r.Next() {
       var id int64
       var name string
@@ -77,8 +83,6 @@ func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta in
     }
     return nil
   })
-
-  logger.Info().Msgf("Token = %s", connector.Token)
 
   if err != nil {
     return diag.FromErr(errors.Wrap(err, "RolesRead"))
@@ -92,4 +96,13 @@ func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta in
   data.SetId(strconv.FormatInt(time.Now().Unix(), 10))
 
   return nil
+}
+
+func getRawConnector(meta interface{}, prefix string, data *schema.ResourceData) (RawConnector, error) {
+  provider := meta.(Provider)
+  connector, err := provider.GetConnector(prefix, data)
+  if err != nil {
+    return nil, err
+  }
+  return connector.(RawConnector), nil
 }

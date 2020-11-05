@@ -3,6 +3,7 @@ package mssql
 import (
   "context"
   "fmt"
+  "github.com/google/uuid"
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
@@ -11,6 +12,23 @@ import (
 )
 
 var defaultAzureTimeout = schema.DefaultTimeout(30 * time.Second)
+
+type UserLogin struct {
+  PrincipalID int64
+  Type        string
+  Username    string
+  SID         uuid.UUID
+  Schema      string
+  Roles       []string
+}
+
+type AzSpConnector interface {
+  GetDatabase() string
+  SetDatabase(database string)
+  CreateAzureADLogin(ctx context.Context, username, schema string, roles []interface{}) error
+  GetUserLogin(ctx context.Context, username string) (*UserLogin, error)
+  DeleteUserLogin(ctx context.Context, username string) error
+}
 
 func resourceAzSpLogin() *schema.Resource {
   return &schema.Resource{
@@ -72,7 +90,7 @@ func resourceAzSpLogin() *schema.Resource {
 }
 
 func resourceAzSpCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "create").Logger()
+  logger := loggerFromMeta(meta, "az_sp_login", "create")
   logger.Debug().Msgf("Create %s", resourceAzSpLoginGetID(data))
 
   database := data.Get(databaseProp).(string)
@@ -81,11 +99,11 @@ func resourceAzSpCreate(ctx context.Context, data *schema.ResourceData, meta int
   defSchema := data.Get(schemaProp).(string)
   roles := data.Get(rolesProp).([]interface{})
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getAzSpConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
-  connector.Database = database
+  connector.SetDatabase(database)
 
   err = connector.CreateAzureADLogin(ctx, username, defSchema, roles)
   if err != nil {
@@ -100,17 +118,17 @@ func resourceAzSpCreate(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func resourceAzSpRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "read").Logger()
+  logger := loggerFromMeta(meta, "az_sp_login", "read")
   logger.Debug().Msgf("Read %s", data.Id())
 
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getAzSpConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
-  connector.Database = database
+  connector.SetDatabase(database)
 
   login, err := connector.GetUserLogin(ctx, username)
   if err != nil {
@@ -138,24 +156,24 @@ func resourceAzSpRead(ctx context.Context, data *schema.ResourceData, meta inter
 }
 
 func resourceAzSpUpdate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "update").Logger()
+  logger := loggerFromMeta(meta, "az_sp_login", "update")
   logger.Debug().Msgf("Update %s", data.Id())
 
   return nil
 }
 
 func resourceAzSpDelete(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "delete").Logger()
+  logger := loggerFromMeta(meta, "az_sp_login", "delete")
   logger.Debug().Msgf("Delete %s", data.Id())
 
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getAzSpConnector(meta, serverProp, data)
   if err != nil {
     return diag.FromErr(err)
   }
-  connector.Database = database
+  connector.SetDatabase(database)
 
   err = connector.DeleteUserLogin(ctx, username)
   if err != nil {
@@ -169,7 +187,7 @@ func resourceAzSpDelete(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func resourceAzSpLoginImport(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-  logger := meta.(Provider).logger.With().Str("resource", "az_sp_login").Str("func", "import").Logger()
+  logger := loggerFromMeta(meta, "az_sp_login", "import")
   logger.Debug().Msgf("Import %s", data.Id())
 
   server, u, err := serverFromId(data.Id(), false)
@@ -196,11 +214,11 @@ func resourceAzSpLoginImport(ctx context.Context, data *schema.ResourceData, met
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector, err := GetConnector(serverProp, data)
+  connector, err := getAzSpConnector(meta, serverProp, data)
   if err != nil {
     return nil, err
   }
-  connector.Database = database
+  connector.SetDatabase(database)
 
   login, err := connector.GetUserLogin(ctx, username)
   if err != nil {
@@ -208,7 +226,7 @@ func resourceAzSpLoginImport(ctx context.Context, data *schema.ResourceData, met
   }
 
   if login == nil {
-    return nil, errors.Errorf("no login found for user [%s].[%s] for import", connector.Database, username)
+    return nil, errors.Errorf("no login found for user [%s].[%s] for import", connector.GetDatabase(), username)
   }
 
   if err = data.Set(clientIdProp, login.SID.String()); err != nil {
@@ -233,4 +251,14 @@ func resourceAzSpLoginGetID(data *schema.ResourceData) string {
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
   return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, username)
+}
+
+
+func getAzSpConnector(meta interface{}, prefix string, data *schema.ResourceData) (AzSpConnector, error) {
+  provider := meta.(Provider)
+  connector, err := provider.GetConnector(prefix, data)
+  if err != nil {
+    return nil, err
+  }
+  return connector.(AzSpConnector), nil
 }
