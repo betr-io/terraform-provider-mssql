@@ -13,6 +13,14 @@ func getLoginID(data *schema.ResourceData) string {
   return fmt.Sprintf("sqlserver://%s:%s/%s", host, port, loginName)
 }
 
+func getUserID(data *schema.ResourceData) string {
+  host := data.Get(serverProp + ".0.host").(string)
+  port := data.Get(serverProp + ".0.port").(string)
+  database := data.Get(databaseProp).(string)
+  username := data.Get(usernameProp).(string)
+  return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, username)
+}
+
 func loggerFromMeta(meta interface{}, resource, function string) zerolog.Logger {
   return meta.(Provider).ResourceLogger(resource, function)
 }

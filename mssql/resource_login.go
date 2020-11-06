@@ -2,7 +2,6 @@ package mssql
 
 import (
   "context"
-  "fmt"
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
@@ -95,7 +94,7 @@ func resourceLoginCreate(ctx context.Context, data *schema.ResourceData, meta in
   defaultDatabase := data.Get(defaultDatabaseProp).(string)
   defaultLanguage := data.Get(defaultLanguageProp).(string)
 
-  connector, err := getLoginConnector(meta, serverProp, data)
+  connector, err := getLoginConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -117,14 +116,14 @@ func resourceLoginRead(ctx context.Context, data *schema.ResourceData, meta inte
 
   loginName := data.Get(loginNameProp).(string)
 
-  connector, err := getLoginConnector(meta, serverProp, data)
+  connector, err := getLoginConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
 
   login, err := connector.GetLogin(ctx, loginName)
   if err != nil {
-    return diag.FromErr(errors.Wrap(err, fmt.Sprintf("unable to read login [%s]", loginName)))
+    return diag.FromErr(errors.Wrapf(err, "unable to read login [%s]", loginName))
   }
   if login == nil {
     logger.Info().Msgf("No login found for [%s]", loginName)
@@ -153,7 +152,7 @@ func resourceLoginUpdate(ctx context.Context, data *schema.ResourceData, meta in
   defaultDatabase := data.Get(defaultDatabaseProp).(string)
   defaultLanguage := data.Get(defaultLanguageProp).(string)
 
-  connector, err := getLoginConnector(meta, serverProp, data)
+  connector, err := getLoginConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -173,13 +172,13 @@ func resourceLoginDelete(ctx context.Context, data *schema.ResourceData, meta in
 
   loginName := data.Get(loginNameProp).(string)
 
-  connector, err := getLoginConnector(meta, serverProp, data)
+  connector, err := getLoginConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
 
   if err = connector.DeleteLogin(ctx, loginName); err != nil {
-    return diag.FromErr(errors.Wrap(err, fmt.Sprintf("unable to delete login [%s]", loginName)))
+    return diag.FromErr(errors.Wrapf(err, "unable to delete login [%s]", loginName))
   }
 
   logger.Info().Msgf("deleted login [%s]", loginName)
@@ -214,18 +213,18 @@ func resourceLoginImport(ctx context.Context, data *schema.ResourceData, meta in
 
   loginName := data.Get(loginNameProp).(string)
 
-  connector, err := getLoginConnector(meta, serverProp, data)
+  connector, err := getLoginConnector(meta, data)
   if err != nil {
     return nil, err
   }
 
   login, err := connector.GetLogin(ctx, loginName)
   if err != nil {
-    return nil, errors.Wrap(err, fmt.Sprintf("unable to read login [%s] for import", loginName))
+    return nil, errors.Wrapf(err, "unable to read login [%s] for import", loginName)
   }
 
   if login == nil {
-    return nil, errors.Errorf("no login found for user [%s] for import", loginName)
+    return nil, errors.Errorf("no login [%s] found for import", loginName)
   }
 
   if err = data.Set(principalIdProp, login.PrincipalID); err != nil {
@@ -241,9 +240,9 @@ func resourceLoginImport(ctx context.Context, data *schema.ResourceData, meta in
   return []*schema.ResourceData{data}, nil
 }
 
-func getLoginConnector(meta interface{}, prefix string, data *schema.ResourceData) (LoginConnector, error) {
+func getLoginConnector(meta interface{}, data *schema.ResourceData) (LoginConnector, error) {
   provider := meta.(Provider)
-  connector, err := provider.GetConnector(prefix, data)
+  connector, err := provider.GetConnector(serverProp, data)
   if err != nil {
     return nil, err
   }

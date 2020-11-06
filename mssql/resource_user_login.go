@@ -93,7 +93,7 @@ func resourceUserLoginCreate(ctx context.Context, data *schema.ResourceData, met
   defSchema := data.Get(schemaProp).(string)
   roles := data.Get(rolesProp).([]interface{})
 
-  connector, err := getUserLoginConnector(meta, serverProp, data)
+  connector, err := getUserLoginConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -117,7 +117,7 @@ func resourceUserLoginRead(ctx context.Context, data *schema.ResourceData, meta 
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector, err := getUserLoginConnector(meta, serverProp, data)
+  connector, err := getUserLoginConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -153,7 +153,7 @@ func resourceUserLoginUpdate(ctx context.Context, data *schema.ResourceData, met
   username := data.Get(usernameProp).(string)
   password := data.Get(passwordProp).(string)
 
-  connector, err := getUserLoginConnector(meta, serverProp, data)
+  connector, err := getUserLoginConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -173,7 +173,7 @@ func resourceUserLoginDelete(ctx context.Context, data *schema.ResourceData, met
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector, err := getUserLoginConnector(meta, serverProp, data)
+  connector, err := getUserLoginConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -217,7 +217,7 @@ func resourceUserLoginImport(ctx context.Context, data *schema.ResourceData, met
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
 
-  connector, err := getUserLoginConnector(meta, serverProp, data)
+  connector, err := getUserLoginConnector(meta, data)
   if err != nil {
     return nil, err
   }
@@ -253,9 +253,9 @@ func resourceUserLoginGetID(data *schema.ResourceData) string {
   return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, username)
 }
 
-func getUserLoginConnector(meta interface{}, prefix string, data *schema.ResourceData) (UserLoginConnector, error) {
+func getUserLoginConnector(meta interface{}, data *schema.ResourceData) (UserLoginConnector, error) {
   provider := meta.(Provider)
-  connector, err := provider.GetConnector(prefix, data)
+  connector, err := provider.GetConnector(serverProp, data)
   if err != nil {
     return nil, err
   }

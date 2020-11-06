@@ -44,6 +44,7 @@ func NewProvider(factory ConnectorFactory) *schema.Provider {
     },
     ResourcesMap: map[string]*schema.Resource{
       "mssql_login":       resourceLogin(),
+      "mssql_user":        resourceUser(),
       "mssql_user_login":  resourceUserLogin(),
       "mssql_az_sp_login": resourceAzSpLogin(),
     },
