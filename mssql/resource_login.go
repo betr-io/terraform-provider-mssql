@@ -6,6 +6,7 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
   "strings"
+  "terraform-provider-mssql/mssql/model"
 )
 
 const loginNameProp = "login_name"
@@ -13,16 +14,9 @@ const defaultDatabaseProp = "default_database"
 const defaultDatabaseDefault = "master"
 const defaultLanguageProp = "default_language"
 
-type Login struct {
-  PrincipalID     int64
-  LoginName       string
-  DefaultDatabase string
-  DefaultLanguage string
-}
-
 type LoginConnector interface {
   CreateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error
-  GetLogin(ctx context.Context, name string) (*Login, error)
+  GetLogin(ctx context.Context, name string) (*model.Login, error)
   UpdateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error
   DeleteLogin(ctx context.Context, name string) error
 }
@@ -241,7 +235,7 @@ func resourceLoginImport(ctx context.Context, data *schema.ResourceData, meta in
 }
 
 func getLoginConnector(meta interface{}, data *schema.ResourceData) (LoginConnector, error) {
-  provider := meta.(Provider)
+  provider := meta.(model.Provider)
   connector, err := provider.GetConnector(serverProp, data)
   if err != nil {
     return nil, err

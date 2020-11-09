@@ -9,21 +9,12 @@ import (
   "github.com/rs/zerolog/log"
   "io"
   "os"
+  "terraform-provider-mssql/mssql/model"
   "time"
 )
 
-type ConnectorFactory interface {
-  GetConnector(prefix string, data *schema.ResourceData) (interface{}, error)
-}
-
-type Provider interface {
-  GetConnector(prefix string, data *schema.ResourceData) (interface{}, error)
-  ResourceLogger(resource, function string) zerolog.Logger
-  DataSourceLogger(datasource, function string) zerolog.Logger
-}
-
 type mssqlProvider struct {
-  factory ConnectorFactory
+  factory model.ConnectorFactory
   logger  *zerolog.Logger
 }
 
@@ -31,8 +22,7 @@ var defaultReadTimeout = schema.DefaultTimeout(30 * time.Second)
 
 const providerLogFile = "terraform-provider-mssql.log"
 
-// NewProvider -
-func NewProvider(factory ConnectorFactory) *schema.Provider {
+func Provider(factory model.ConnectorFactory) *schema.Provider {
   return &schema.Provider{
     Schema: map[string]*schema.Schema{
       "debug": {
@@ -58,7 +48,7 @@ func NewProvider(factory ConnectorFactory) *schema.Provider {
   }
 }
 
-func providerConfigure(ctx context.Context, data *schema.ResourceData, factory ConnectorFactory) (Provider, diag.Diagnostics) {
+func providerConfigure(ctx context.Context, data *schema.ResourceData, factory model.ConnectorFactory) (model.Provider, diag.Diagnostics) {
   isDebug := data.Get("debug").(bool)
   logger := newLogger(isDebug)
 

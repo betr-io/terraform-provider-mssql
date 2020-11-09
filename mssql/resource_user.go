@@ -6,6 +6,7 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
   "strings"
+  "terraform-provider-mssql/mssql/model"
 )
 
 const authenticationTypeProp = "authentication_type"
@@ -79,20 +80,10 @@ func resourceUser() *schema.Resource {
 }
 
 type UserConnector interface {
-  CreateUser(ctx context.Context, database string, user *User) error
-  GetUser(ctx context.Context, database, username string) (*User, error)
-  UpdateUser(ctx context.Context, database string, user *User) error
+  CreateUser(ctx context.Context, database string, user *model.User) error
+  GetUser(ctx context.Context, database, username string) (*model.User, error)
+  UpdateUser(ctx context.Context, database string, user *model.User) error
   DeleteUser(ctx context.Context, database, username string) error
-}
-
-type User struct {
-  PrincipalID     int64
-  Username        string
-  LoginName       string
-  Password        string
-  AuthType        string
-  DefaultSchema   string
-  DefaultLanguage string
 }
 
 func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -126,7 +117,7 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
     return diag.FromErr(err)
   }
 
-  user := &User{
+  user := &model.User{
     Username:        username,
     LoginName:       loginName,
     Password:        password,
@@ -196,7 +187,7 @@ func resourceUserUpdate(ctx context.Context, data *schema.ResourceData, meta int
     return diag.FromErr(err)
   }
 
-  user := &User{
+  user := &model.User{
     Username:        username,
     DefaultSchema:   defaultSchema,
     DefaultLanguage: defaultLanguage,
@@ -295,7 +286,7 @@ func resourceUserImport(ctx context.Context, data *schema.ResourceData, meta int
 }
 
 func getUserConnector(meta interface{}, data *schema.ResourceData) (UserConnector, error) {
-  provider := meta.(Provider)
+  provider := meta.(model.Provider)
   connector, err := provider.GetConnector(serverProp, data)
   if err != nil {
     return nil, err

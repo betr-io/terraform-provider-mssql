@@ -3,30 +3,21 @@ package mssql
 import (
   "context"
   "fmt"
-  "github.com/google/uuid"
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
   "strings"
+  "terraform-provider-mssql/mssql/model"
   "time"
 )
 
 var defaultAzureTimeout = schema.DefaultTimeout(30 * time.Second)
 
-type UserLogin struct {
-  PrincipalID int64
-  Type        string
-  Username    string
-  SID         uuid.UUID
-  Schema      string
-  Roles       []string
-}
-
 type AzSpConnector interface {
   GetDatabase() string
   SetDatabase(database string)
   CreateAzureADLogin(ctx context.Context, username, schema string, roles []interface{}) error
-  GetUserLogin(ctx context.Context, username string) (*UserLogin, error)
+  GetUserLogin(ctx context.Context, username string) (*model.UserLogin, error)
   DeleteUserLogin(ctx context.Context, username string) error
 }
 
@@ -255,7 +246,7 @@ func resourceAzSpLoginGetID(data *schema.ResourceData) string {
 
 
 func getAzSpConnector(meta interface{}, prefix string, data *schema.ResourceData) (AzSpConnector, error) {
-  provider := meta.(Provider)
+  provider := meta.(model.Provider)
   connector, err := provider.GetConnector(prefix, data)
   if err != nil {
     return nil, err

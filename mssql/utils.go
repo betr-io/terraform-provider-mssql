@@ -4,6 +4,7 @@ import (
   "fmt"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/rs/zerolog"
+  "terraform-provider-mssql/mssql/model"
 )
 
 func getLoginID(data *schema.ResourceData) string {
@@ -22,5 +23,5 @@ func getUserID(data *schema.ResourceData) string {
 }
 
 func loggerFromMeta(meta interface{}, resource, function string) zerolog.Logger {
-  return meta.(Provider).ResourceLogger(resource, function)
+  return meta.(model.Provider).ResourceLogger(resource, function)
 }

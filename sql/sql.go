@@ -15,7 +15,7 @@ import (
   "net"
   "net/url"
   "strings"
-  mssql2 "terraform-provider-mssql/mssql"
+  "terraform-provider-mssql/mssql/model"
   "time"
 )
 
@@ -23,7 +23,7 @@ const DefaultPort = "1433"
 
 type factory struct{}
 
-func GetFactory() mssql2.ConnectorFactory {
+func GetFactory() model.ConnectorFactory {
   return new(factory)
 }
 

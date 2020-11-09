@@ -10,6 +10,7 @@ import (
   "net/url"
   "os"
   "strings"
+  "terraform-provider-mssql/mssql/model"
 )
 
 type ServerConnector interface {
@@ -17,7 +18,7 @@ type ServerConnector interface {
 }
 
 func getServerConnector(meta interface{}, prefix string, data *schema.ResourceData) (ServerConnector, error) {
-  provider := meta.(Provider)
+  provider := meta.(model.Provider)
   connector, err := provider.GetConnector(prefix, data)
   if err != nil {
     return nil, err
@@ -60,7 +61,7 @@ func dataSourceServerRead(ctx context.Context, data *schema.ResourceData, meta i
   }
   data.Set("encoded", string(encoded))
 
-  logger := meta.(Provider).DataSourceLogger("server", "read")
+  logger := meta.(model.Provider).DataSourceLogger("server", "read")
   logger.Info().Msgf("Created connector for %s", connector.ID())
 
   data.SetId(connector.ID())

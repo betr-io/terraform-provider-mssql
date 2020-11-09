@@ -7,6 +7,7 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
   "strings"
+  "terraform-provider-mssql/mssql/model"
 )
 
 const serverEncodedProp = "server_encoded"
@@ -15,7 +16,7 @@ type UserLoginConnector interface {
   GetDatabase() string
   SetDatabase(database string)
   CreateUserLogin(ctx context.Context, database, username, password, schema string, roles []interface{}) error
-  GetUserLogin(ctx context.Context, username string) (*UserLogin, error)
+  GetUserLogin(ctx context.Context, username string) (*model.UserLogin, error)
   UpdateUserLogin(ctx context.Context, username string, password string) error
   DeleteUserLogin(ctx context.Context, username string) error
 }
@@ -254,7 +255,7 @@ func resourceUserLoginGetID(data *schema.ResourceData) string {
 }
 
 func getUserLoginConnector(meta interface{}, data *schema.ResourceData) (UserLoginConnector, error) {
-  provider := meta.(Provider)
+  provider := meta.(model.Provider)
   connector, err := provider.GetConnector(serverProp, data)
   if err != nil {
     return nil, err

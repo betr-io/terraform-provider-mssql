@@ -3,15 +3,15 @@ package sql
 import (
   "context"
   "database/sql"
-  "terraform-provider-mssql/mssql"
+  "terraform-provider-mssql/mssql/model"
 )
 
-func (c *Connector) GetUser(ctx context.Context, database, username string) (*mssql.User, error) {
+func (c *Connector) GetUser(ctx context.Context, database, username string) (*model.User, error) {
   cmd := `DECLARE @stmt nvarchar(max)
           SET @stmt = 'SELECT principal_id, name, authentication_type_desc, COALESCE(default_schema_name, ''''), COALESCE(default_language_name, '''') ' +
                       'FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE [name] = ' + QuoteName(@username, '''')
           EXEC (@stmt)`
-  var user mssql.User
+  var user model.User
   err := c.
     setDatabase(&database).
     QueryRowContext(ctx, cmd,
@@ -30,7 +30,7 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*ms
   return &user, nil
 }
 
-func (c *Connector) CreateUser(ctx context.Context, database string, user *mssql.User) error {
+func (c *Connector) CreateUser(ctx context.Context, database string, user *model.User) error {
   cmd := `DECLARE @stmt nvarchar(max)
           DECLARE @language nvarchar(max) = @defaultLanguage
           IF @language = '' SET @language = NULL
@@ -73,7 +73,7 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *mssql
       sql.Named("defaultLanguage", user.DefaultLanguage))
 }
 
-func (c *Connector) UpdateUser(ctx context.Context, database string, user *mssql.User) error {
+func (c *Connector) UpdateUser(ctx context.Context, database string, user *model.User) error {
   cmd := `DECLARE @stmt nvarchar(max)
           SET @stmt = 'ALTER USER ' + QuoteName(@username) + ' '
           DECLARE @language nvarchar(max) = @defaultLanguage

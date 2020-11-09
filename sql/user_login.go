@@ -7,10 +7,10 @@ import (
   "fmt"
   "github.com/google/uuid"
   "strings"
-  "terraform-provider-mssql/mssql"
+  "terraform-provider-mssql/mssql/model"
 )
 
-func (c *Connector) GetUserLogin(ctx context.Context, username string) (*mssql.UserLogin, error) {
+func (c *Connector) GetUserLogin(ctx context.Context, username string) (*model.UserLogin, error) {
   cmd := `WITH CTE_Roles (role_principal_id) AS
           (
               SELECT role_principal_id FROM sys.database_role_members WHERE member_principal_id = DATABASE_PRINCIPAL_ID(@username)
@@ -57,7 +57,7 @@ func (c *Connector) GetUserLogin(ctx context.Context, username string) (*mssql.U
     }
   }
   if principalID != -1 {
-    return &mssql.UserLogin{
+    return &model.UserLogin{
       PrincipalID: principalID,
       Type:        typ,
       Username:    username,

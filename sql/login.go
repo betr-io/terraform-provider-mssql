@@ -3,11 +3,11 @@ package sql
 import (
   "context"
   "database/sql"
-  "terraform-provider-mssql/mssql"
+  "terraform-provider-mssql/mssql/model"
 )
 
-func (c *Connector) GetLogin(ctx context.Context, name string) (*mssql.Login, error) {
-  var login mssql.Login
+func (c *Connector) GetLogin(ctx context.Context, name string) (*model.Login, error) {
+  var login model.Login
   err := c.QueryRowContext(ctx,
     "SELECT principal_id, name, default_database_name, default_language_name FROM [master].[sys].[sql_logins] WHERE [name] = @name",
     func(r *sql.Row) error {

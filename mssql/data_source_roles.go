@@ -7,6 +7,7 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
   "strconv"
+  "terraform-provider-mssql/mssql/model"
   "time"
 )
 
@@ -61,7 +62,7 @@ func dataSourceRoles() *schema.Resource {
 }
 
 func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := meta.(Provider).DataSourceLogger("roles", "read")
+  logger := meta.(model.Provider).DataSourceLogger("roles", "read")
   logger.Debug().Msgf("read %s", data.Id())
 
   connector, err := getRawConnector(meta, "server", data)
@@ -99,7 +100,7 @@ func dataSourceRolesRead(ctx context.Context, data *schema.ResourceData, meta in
 }
 
 func getRawConnector(meta interface{}, prefix string, data *schema.ResourceData) (RawConnector, error) {
-  provider := meta.(Provider)
+  provider := meta.(model.Provider)
   connector, err := provider.GetConnector(prefix, data)
   if err != nil {
     return nil, err

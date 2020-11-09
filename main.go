@@ -11,7 +11,7 @@ import (
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
 		ProviderFunc: func() *schema.Provider {
-			return mssql.NewProvider(sql.GetFactory())
+			return mssql.Provider(sql.GetFactory())
 		},
 	})
 }
