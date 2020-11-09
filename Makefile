@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 TEST?=$$(go list ./... | grep -v 'vendor')
 HOSTNAME=betr.io
 NAMESPACE=betr
@@ -34,4 +36,4 @@ test:
 	echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
 
 testacc:
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+	if [ -f .local.env ]; then source .local.env; fi && TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
