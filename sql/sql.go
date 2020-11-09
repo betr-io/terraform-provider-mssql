@@ -249,6 +249,9 @@ func connectLoop(connector driver.Connector, timeout time.Duration) (*sql.DB, er
       if err == nil {
         return db, nil
       }
+      if strings.Contains(err.Error(), "Login failed") {
+        return nil, err
+      }
       if strings.Contains(err.Error(), "UserLogin error") {
         return nil, err
       }
