@@ -1,6 +1,7 @@
-/examples/
 /.idea/
 /bin/
+/dist/
+/examples/
 .local.env
 terraform-provider-mssql
 terraform-provider-mssql.log
@@ -42,4 +43,3 @@ terraform
 
 # Local ignores
 .DS_Store
-/test-mssql/
