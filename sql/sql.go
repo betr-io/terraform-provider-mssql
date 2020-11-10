@@ -4,7 +4,6 @@ import (
   "context"
   "database/sql"
   "database/sql/driver"
-  "encoding/json"
   "fmt"
   "github.com/Azure/go-autorest/autorest/adal"
   "github.com/Azure/go-autorest/autorest/azure"
@@ -12,14 +11,11 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
   "log"
-  "net"
   "net/url"
   "strings"
   "terraform-provider-mssql/mssql/model"
   "time"
 )
-
-const DefaultPort = "1433"
 
 type factory struct{}
 
@@ -28,15 +24,9 @@ func GetFactory() model.ConnectorFactory {
 }
 
 func (f factory) GetConnector(prefix string, data *schema.ResourceData) (interface{}, error) {
-  if encoded, isOk := data.GetOk(prefix + "_encoded"); isOk {
-    c := &Connector{}
-    err := json.Unmarshal([]byte(encoded.(string)), c)
-    if err != nil {
-      return nil, err
-    }
-    return c, nil
+  if len(prefix) > 0 {
+    prefix = prefix + ".0."
   }
-  prefix = getPrefix(prefix)
 
   connector := &Connector{
     Host:    data.Get(prefix + "host").(string),
@@ -64,13 +54,6 @@ func (f factory) GetConnector(prefix string, data *schema.ResourceData) (interfa
   return connector, nil
 }
 
-func getPrefix(prefix string) string {
-  if len(prefix) > 0 {
-    return prefix + ".0."
-  }
-  return prefix
-}
-
 type Connector struct {
   Host       string `json:"host"`
   Port       string `json:"port"`
@@ -90,19 +73,6 @@ type AzureLogin struct {
   TenantID     string `json:"tenant_id,omitempty"`
   ClientID     string `json:"client_id,omitempty"`
   ClientSecret string `json:"client_secret,omitempty"`
-}
-
-func (c *Connector) ID() string {
-  host := c.Host
-  if c.Port != DefaultPort {
-    host = net.JoinHostPort(host, c.Port)
-  }
-  id := (&url.URL{
-    Scheme: "sqlserver",
-    Host:   host,
-    Path:   c.Database,
-  }).String()
-  return id
 }
 
 func (c *Connector) PingContext(ctx context.Context) error {

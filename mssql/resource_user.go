@@ -22,17 +22,10 @@ func resourceUser() *schema.Resource {
       serverProp: {
         Type:         schema.TypeList,
         MaxItems:     1,
-        Optional:     true,
-        ExactlyOneOf: []string{serverProp, serverEncodedProp},
+        Required:     true,
         Elem: &schema.Resource{
-          Schema: getServerSchema(serverProp, true, nil),
+          Schema: getServerSchema(serverProp),
         },
-      },
-      serverEncodedProp: {
-        Type:         schema.TypeString,
-        Optional:     true,
-        Sensitive:    true,
-        ExactlyOneOf: []string{serverProp, serverEncodedProp},
       },
       databaseProp: {
         Type:     schema.TypeString,
@@ -82,6 +75,9 @@ func resourceUser() *schema.Resource {
           Type: schema.TypeString,
         },
       },
+    },
+    Timeouts: &schema.ResourceTimeout{
+      Default: defaultTimeout,
     },
   }
 }
@@ -245,7 +241,7 @@ func resourceUserImport(ctx context.Context, data *schema.ResourceData, meta int
   logger := loggerFromMeta(meta, "user", "import")
   logger.Debug().Msgf("Import %s", data.Id())
 
-  server, u, err := serverFromId(data.Id(), true)
+  server, u, err := serverFromId(data.Id())
   if err != nil {
     return nil, err
   }

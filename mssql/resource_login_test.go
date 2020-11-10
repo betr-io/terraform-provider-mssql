@@ -2,7 +2,6 @@ package mssql
 
 import (
   "context"
-  "encoding/json"
   "fmt"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
   "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -143,14 +142,6 @@ func testAccCheckMssqlLoginExists(resource string) resource.TestCheckFunc {
 }
 
 func getTestLoginConnector(prefix string, a map[string]string) (LoginConnector, error) {
-  if encoded, isOk := a[prefix+"_encoded"]; isOk {
-    c := &sql.Connector{}
-    err := json.Unmarshal([]byte(encoded), c)
-    if err != nil {
-      return nil, err
-    }
-    return c, nil
-  }
   if len(prefix) > 0 {
     prefix = prefix + ".0."
   }

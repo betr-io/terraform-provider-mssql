@@ -19,9 +19,13 @@ type mssqlProvider struct {
   logger  *zerolog.Logger
 }
 
-var defaultReadTimeout = schema.DefaultTimeout(30 * time.Second)
+const (
+  providerLogFile = "terraform-provider-mssql.log"
+)
 
-const providerLogFile = "terraform-provider-mssql.log"
+var (
+  defaultTimeout = schema.DefaultTimeout(30 * time.Second)
+)
 
 func New(version, commit string) func() *schema.Provider {
   return func() *schema.Provider {
@@ -40,13 +44,10 @@ func Provider(factory model.ConnectorFactory) *schema.Provider {
       },
     },
     ResourcesMap: map[string]*schema.Resource{
-      "mssql_login":       resourceLogin(),
-      "mssql_user":        resourceUser(),
+      "mssql_login": resourceLogin(),
+      "mssql_user":  resourceUser(),
     },
-    DataSourcesMap: map[string]*schema.Resource{
-      "mssql_server": dataSourceServer(),
-      "mssql_roles":  dataSourceRoles(),
-    },
+    DataSourcesMap: map[string]*schema.Resource{},
     ConfigureContextFunc: func(ctx context.Context, data *schema.ResourceData) (interface{}, diag.Diagnostics) {
       return providerConfigure(ctx, data, factory)
     },

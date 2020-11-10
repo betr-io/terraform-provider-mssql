@@ -2,7 +2,6 @@ package mssql
 
 const (
   serverProp               = "server"
-  serverEncodedProp        = "server_encoded"
   databaseProp             = "database"
   principalIdProp          = "principal_id"
   usernameProp             = "username"

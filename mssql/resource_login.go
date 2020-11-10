@@ -34,17 +34,10 @@ func resourceLogin() *schema.Resource {
       serverProp: {
         Type:         schema.TypeList,
         MaxItems:     1,
-        Optional:     true,
-        ExactlyOneOf: []string{serverProp, serverEncodedProp},
+        Required:     true,
         Elem: &schema.Resource{
-          Schema: getServerSchema(serverProp, true, nil),
+          Schema: getServerSchema(serverProp),
         },
-      },
-      serverEncodedProp: {
-        Type:         schema.TypeString,
-        Optional:     true,
-        Sensitive:    true,
-        ExactlyOneOf: []string{serverProp, serverEncodedProp},
       },
       loginNameProp: {
         Type:     schema.TypeString,
@@ -75,6 +68,9 @@ func resourceLogin() *schema.Resource {
           return (old == "" && new == "us_english") || (old == "us_english" && new == "")
         },
       },
+    },
+    Timeouts: &schema.ResourceTimeout{
+      Default: defaultTimeout,
     },
   }
 }
@@ -187,7 +183,7 @@ func resourceLoginImport(ctx context.Context, data *schema.ResourceData, meta in
   logger := loggerFromMeta(meta, "login", "import")
   logger.Debug().Msgf("Import %s", data.Id())
 
-  server, u, err := serverFromId(data.Id(), true)
+  server, u, err := serverFromId(data.Id())
   if err != nil {
     return nil, err
   }

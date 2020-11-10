@@ -1,79 +1,21 @@
 package mssql
 
 import (
-  "context"
-  "encoding/json"
   "errors"
-  "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "net"
   "net/url"
   "os"
   "strings"
-  "terraform-provider-mssql/mssql/model"
 )
 
-type ServerConnector interface {
-  ID() string
-}
+const DefaultPort = "1433"
 
-func getServerConnector(meta interface{}, prefix string, data *schema.ResourceData) (ServerConnector, error) {
-  provider := meta.(model.Provider)
-  connector, err := provider.GetConnector(prefix, data)
-  if err != nil {
-    return nil, err
-  }
-  return connector.(ServerConnector), nil
-}
-
-func getPrefix(prefix string) string {
+func getServerSchema(prefix string) map[string]*schema.Schema {
   if len(prefix) > 0 {
-    return prefix + ".0."
+    prefix = prefix + ".0."
   }
-  return prefix
-}
-
-func dataSourceServer() *schema.Resource {
-  return &schema.Resource{
-    ReadContext: dataSourceServerRead,
-    Schema: getServerSchema("", true, &map[string]*schema.Schema{
-      "encoded": {
-        Type:      schema.TypeString,
-        Computed:  true,
-        Sensitive: true,
-      },
-    }),
-    Timeouts: &schema.ResourceTimeout{
-      Read: defaultReadTimeout,
-    },
-  }
-}
-
-func dataSourceServerRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  connector, err := getServerConnector(meta, "", data)
-  if err != nil {
-    return diag.FromErr(err)
-  }
-
-  encoded, err := json.Marshal(connector)
-  if err != nil {
-    return diag.FromErr(err)
-  }
-  if err = data.Set("encoded", string(encoded)); err != nil {
-    return diag.FromErr(err)
-  }
-
-  logger := meta.(model.Provider).DataSourceLogger("server", "read")
-  logger.Info().Msgf("Created connector for %s", connector.ID())
-
-  data.SetId(connector.ID())
-
-  return nil
-}
-
-func getServerSchema(prefix string, allowSqlLogin bool, extensions *map[string]*schema.Schema) map[string]*schema.Schema {
-  prefix = getPrefix(prefix)
-  s := map[string]*schema.Schema{
+  return map[string]*schema.Schema{
     "host": {
       Type:     schema.TypeString,
       Required: true,
@@ -86,12 +28,34 @@ func getServerSchema(prefix string, allowSqlLogin bool, extensions *map[string]*
       Type:     schema.TypeString,
       Optional: true,
       ForceNew: true,
-      Default:  1433,
+      Default:  DefaultPort,
+    },
+    "login": {
+      Type:         schema.TypeList,
+      MaxItems:     1,
+      Optional:     true,
+      ExactlyOneOf: []string{prefix + "login", prefix + "azure_login"},
+      Elem: &schema.Resource{
+        Schema: map[string]*schema.Schema{
+          "username": {
+            Type:        schema.TypeString,
+            Required:    true,
+            DefaultFunc: schema.EnvDefaultFunc("MSSQL_USERNAME", nil),
+          },
+          "password": {
+            Type:        schema.TypeString,
+            Required:    true,
+            Sensitive:   true,
+            DefaultFunc: schema.EnvDefaultFunc("MSSQL_PASSWORD", nil),
+          },
+        },
+      },
     },
     "azure_login": {
-      Type:     schema.TypeList,
-      MaxItems: 1,
-      Required: true,
+      Type:         schema.TypeList,
+      MaxItems:     1,
+      Optional:     true,
+      ExactlyOneOf: []string{prefix + "login", prefix + "azure_login"},
       Elem: &schema.Resource{
         Schema: map[string]*schema.Schema{
           "tenant_id": {
@@ -114,43 +78,9 @@ func getServerSchema(prefix string, allowSqlLogin bool, extensions *map[string]*
       },
     },
   }
-  if allowSqlLogin {
-    s["azure_login"].Optional = true
-    s["azure_login"].Required = false
-    s["azure_login"].ExactlyOneOf = []string{prefix + "login", prefix + "azure_login"}
-    s["login"] = &schema.Schema{
-      Type:         schema.TypeList,
-      MaxItems:     1,
-      Optional:     true,
-      ExactlyOneOf: []string{prefix + "login", prefix + "azure_login"},
-      Elem: &schema.Resource{
-        Schema: map[string]*schema.Schema{
-          "username": {
-            Type:        schema.TypeString,
-            Required:    true,
-            DefaultFunc: schema.EnvDefaultFunc("MSSQL_USERNAME", nil),
-          },
-          "password": {
-            Type:        schema.TypeString,
-            Required:    true,
-            Sensitive:   true,
-            DefaultFunc: schema.EnvDefaultFunc("MSSQL_PASSWORD", nil),
-          },
-        },
-      },
-    }
-  }
-  if extensions != nil {
-    for k, v := range *extensions {
-      s[k] = v
-    }
-  }
-
-  return s
 }
 
-const DefaultPort = "1433"
-func serverFromId(id string, allowLogin bool) ([]map[string]interface{}, *url.URL, error) {
+func serverFromId(id string) ([]map[string]interface{}, *url.URL, error) {
   u, err := url.Parse(id)
   if err != nil {
     return nil, nil, err
@@ -185,21 +115,10 @@ func serverFromId(id string, allowLogin bool) ([]map[string]interface{}, *url.UR
     login = nil
   }
 
-  if allowLogin {
-    return []map[string]interface{}{{
-      "host":        host,
-      "port":        port,
-      "login":       login,
-      "azure_login": azureLogin,
-    }}, u, nil
-  }
-
-  if azureLogin == nil {
-    return nil, nil, errors.New("this resource requires azure login")
-  }
   return []map[string]interface{}{{
     "host":        host,
     "port":        port,
+    "login":       login,
     "azure_login": azureLogin,
   }}, u, nil
 }
