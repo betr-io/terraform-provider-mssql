@@ -8,4 +8,5 @@ type User struct {
   AuthType        string
   DefaultSchema   string
   DefaultLanguage string
+  Roles           []string
 }

@@ -59,7 +59,9 @@ func dataSourceServerRead(ctx context.Context, data *schema.ResourceData, meta i
   if err != nil {
     return diag.FromErr(err)
   }
-  data.Set("encoded", string(encoded))
+  if err = data.Set("encoded", string(encoded)); err != nil {
+    return diag.FromErr(err)
+  }
 
   logger := meta.(model.Provider).DataSourceLogger("server", "read")
   logger.Info().Msgf("Created connector for %s", connector.ID())

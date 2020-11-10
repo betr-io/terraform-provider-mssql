@@ -9,9 +9,6 @@ import (
   "terraform-provider-mssql/mssql/model"
 )
 
-const authenticationTypeProp = "authentication_type"
-const defaultSchemaProp = "default_schema"
-
 func resourceUser() *schema.Resource {
   return &schema.Resource{
     CreateContext: resourceUserCreate,
@@ -69,11 +66,21 @@ func resourceUser() *schema.Resource {
       defaultSchemaProp: {
         Type:     schema.TypeString,
         Optional: true,
-        Default:  "dbo",
+        Default:  defaultSchemaPropDefault,
       },
       defaultLanguageProp: {
         Type:     schema.TypeString,
         Optional: true,
+      },
+      rolesProp: {
+        Type:     schema.TypeList,
+        Optional: true,
+        DefaultFunc: func() (interface{}, error) {
+          return rolesPropDefault, nil
+        },
+        Elem: &schema.Schema{
+          Type: schema.TypeString,
+        },
       },
     },
   }
@@ -96,6 +103,7 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
   password := data.Get(passwordProp).(string)
   defaultSchema := data.Get(defaultSchemaProp).(string)
   defaultLanguage := data.Get(defaultLanguageProp).(string)
+  roles := data.Get(rolesProp).([]interface{})
 
   if loginName != "" && password != "" {
     return diag.Errorf(loginNameProp + " and " + passwordProp + " cannot both be set")
@@ -124,6 +132,7 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
     AuthType:        authType,
     DefaultSchema:   defaultSchema,
     DefaultLanguage: defaultLanguage,
+    Roles:           toStringSlice(roles),
   }
   if err = connector.CreateUser(ctx, database, user); err != nil {
     return diag.FromErr(errors.Wrapf(err, "unable to create user [%s].[%s]", database, username))
@@ -168,6 +177,9 @@ func resourceUserRead(ctx context.Context, data *schema.ResourceData, meta inter
     if err = data.Set(defaultLanguageProp, user.DefaultLanguage); err != nil {
       return diag.FromErr(err)
     }
+    if err = data.Set(rolesProp, user.Roles); err != nil {
+      return diag.FromErr(err)
+    }
   }
 
   return nil
@@ -181,6 +193,7 @@ func resourceUserUpdate(ctx context.Context, data *schema.ResourceData, meta int
   username := data.Get(usernameProp).(string)
   defaultSchema := data.Get(defaultSchemaProp).(string)
   defaultLanguage := data.Get(defaultLanguageProp).(string)
+  roles := data.Get(rolesProp).([]interface{})
 
   connector, err := getUserConnector(meta, data)
   if err != nil {
@@ -191,6 +204,7 @@ func resourceUserUpdate(ctx context.Context, data *schema.ResourceData, meta int
     Username:        username,
     DefaultSchema:   defaultSchema,
     DefaultLanguage: defaultLanguage,
+    Roles:           toStringSlice(roles),
   }
   if err = connector.UpdateUser(ctx, database, user); err != nil {
     return diag.FromErr(errors.Wrapf(err, "unable to update user [%s].[%s]", database, username))
@@ -281,6 +295,9 @@ func resourceUserImport(ctx context.Context, data *schema.ResourceData, meta int
   if err = data.Set(defaultLanguageProp, login.DefaultLanguage); err != nil {
     return nil, err
   }
+  if err = data.Set(rolesProp, login.Roles); err != nil {
+    return nil, err
+  }
 
   return []*schema.ResourceData{data}, nil
 }
@@ -292,4 +309,12 @@ func getUserConnector(meta interface{}, data *schema.ResourceData) (UserConnecto
     return nil, err
   }
   return connector.(UserConnector), nil
+}
+
+func toStringSlice(values []interface{}) []string {
+  result := make([]string, len(values))
+  for i, v := range values {
+    result[i] = v.(string)
+  }
+  return result
 }
