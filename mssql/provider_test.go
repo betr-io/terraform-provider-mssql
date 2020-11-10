@@ -7,8 +7,8 @@ import (
   "testing"
 )
 
-var testAccProviders map[string]func() (*schema.Provider, error)
 var testAccProvider *schema.Provider
+var testAccProviders map[string]func() (*schema.Provider, error)
 
 func init() {
   testAccProvider = Provider(sql.GetFactory())

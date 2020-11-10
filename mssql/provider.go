@@ -10,6 +10,7 @@ import (
   "io"
   "os"
   "terraform-provider-mssql/mssql/model"
+  "terraform-provider-mssql/sql"
   "time"
 )
 
@@ -21,6 +22,12 @@ type mssqlProvider struct {
 var defaultReadTimeout = schema.DefaultTimeout(30 * time.Second)
 
 const providerLogFile = "terraform-provider-mssql.log"
+
+func New(version, commit string) func() *schema.Provider {
+  return func() *schema.Provider {
+    return Provider(sql.GetFactory())
+  }
+}
 
 func Provider(factory model.ConnectorFactory) *schema.Provider {
   return &schema.Provider{
