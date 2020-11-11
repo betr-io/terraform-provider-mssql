@@ -49,10 +49,6 @@ func resourceLogin() *schema.Resource {
         Required:  true,
         Sensitive: true,
       },
-      principalIdProp: {
-        Type:     schema.TypeInt,
-        Computed: true,
-      },
       defaultDatabaseProp: {
         Type:     schema.TypeString,
         Optional: true,
@@ -67,6 +63,10 @@ func resourceLogin() *schema.Resource {
         DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
           return (old == "" && new == "us_english") || (old == "us_english" && new == "")
         },
+      },
+      principalIdProp: {
+        Type:     schema.TypeInt,
+        Computed: true,
       },
     },
     Timeouts: &schema.ResourceTimeout{

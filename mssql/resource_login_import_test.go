@@ -15,7 +15,7 @@ func TestAccLogin_importBasic(t *testing.T) {
       {
         Config: testAccCheckMssqlLoginImporterBasic(),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckMssqlLoginExists("mssql_login.test_import"),
+          testAccCheckLoginExists("mssql_login.test_import"),
         ),
       },
       {
