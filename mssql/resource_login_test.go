@@ -30,6 +30,7 @@ func TestAccLogin_Basic(t *testing.T) {
           resource.TestCheckResourceAttr("mssql_login.basic", "server.0.login.0.username", os.Getenv("MSSQL_USERNAME")),
           resource.TestCheckResourceAttr("mssql_login.basic", "server.0.login.0.password", os.Getenv("MSSQL_PASSWORD")),
           resource.TestCheckResourceAttr("mssql_login.basic", "server.0.azure_login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_login.basic", "principal_id"),
         ),
       },
     },

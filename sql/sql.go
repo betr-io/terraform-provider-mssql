@@ -164,7 +164,7 @@ func (c *Connector) connector() (driver.Connector, error) {
   connectionString := (&url.URL{
     Scheme:   "sqlserver",
     User:     c.userPassword(),
-    Host:     c.Host,
+    Host:     fmt.Sprintf("%s:%s", c.Host, c.Port),
     RawQuery: query.Encode(),
   }).String()
   if c.Login != nil {

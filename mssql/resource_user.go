@@ -20,9 +20,9 @@ func resourceUser() *schema.Resource {
     },
     Schema: map[string]*schema.Schema{
       serverProp: {
-        Type:         schema.TypeList,
-        MaxItems:     1,
-        Required:     true,
+        Type:     schema.TypeList,
+        MaxItems: 1,
+        Required: true,
         Elem: &schema.Resource{
           Schema: getServerSchema(serverProp),
         },
@@ -68,9 +68,6 @@ func resourceUser() *schema.Resource {
       rolesProp: {
         Type:     schema.TypeList,
         Optional: true,
-        DefaultFunc: func() (interface{}, error) {
-          return rolesPropDefault, nil
-        },
         Elem: &schema.Schema{
           Type: schema.TypeString,
         },
@@ -161,6 +158,9 @@ func resourceUserRead(ctx context.Context, data *schema.ResourceData, meta inter
     logger.Info().Msgf("No user found for [%s].[%s]", database, username)
     data.SetId("")
   } else {
+    if err = data.Set(loginNameProp, user.LoginName); err != nil {
+      return diag.FromErr(err)
+    }
     if err = data.Set(authenticationTypeProp, user.AuthType); err != nil {
       return diag.FromErr(err)
     }

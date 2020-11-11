@@ -12,7 +12,3 @@ const (
   defaultSchemaPropDefault = "dbo"
   rolesProp                = "roles"
 )
-
-var (
-  rolesPropDefault = []string{"db_owner"}
-)

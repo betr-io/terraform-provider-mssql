@@ -6,23 +6,22 @@ import (
   "testing"
 )
 
-func TestAccLogin_importBasic(t *testing.T) {
+func TestAccUser_importBasic(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     ProviderFactories: testAccProviders,
-    CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(t, state) },
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckUserDestroy(t, state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckLogin(t, "test_import", map[string]string{"login_name": "login_import", "password": "valueIsH8kd$¡"}),
+        Config: testAccCheckUser(t, "test_import", map[string]string{"username": "user_import", "login_name": "user_import", "login_password": "valueIsH8kd$¡"}),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckLoginExists("mssql_login.test_import"),
+          testAccCheckUserExists("mssql_user.test_import"),
         ),
       },
       {
-        ResourceName:            "mssql_login.test_import",
+        ResourceName:            "mssql_user.test_import",
         ImportState:             true,
         ImportStateVerify:       true,
-        ImportStateVerifyIgnore: []string{"password"},
       },
     },
   })

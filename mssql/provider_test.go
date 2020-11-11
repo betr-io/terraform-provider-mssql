@@ -42,7 +42,9 @@ func testAccPreCheck(t *testing.T) {
 
 type TestConnector interface {
   GetLogin(name string) (*model.Login, error)
+  GetUser(database, name string) (*model.User, error)
   GetSystemUser() (string, error)
+  GetCurrentUser(database string) (string, string, error)
 }
 
 type testConnector struct {
@@ -93,16 +95,50 @@ func getTestLoginConnector(a map[string]string) (TestConnector, error) {
   return testConnector{c: connector}, nil
 }
 
+func getTestUserConnector(a map[string]string, username, password string) (TestConnector, error) {
+  prefix := serverProp + ".0."
+  connector := &sql.Connector{
+    Host:    a[prefix+"host"],
+    Port:    a[prefix+"port"],
+    Timeout: 60 * time.Second,
+  }
+  connector.Login = &sql.LoginUser{
+    Username: username,
+    Password: password,
+  }
+  if database, ok := a[databaseProp]; ok {
+    connector.Database = database
+  }
+
+  return testConnector{c: connector}, nil
+}
+
 func (t testConnector) GetLogin(name string) (*model.Login, error) {
   return t.c.(LoginConnector).GetLogin(context.Background(), name)
 }
 
+func (t testConnector) GetUser(database, name string) (*model.User, error) {
+  return t.c.(UserConnector).GetUser(context.Background(), database, name)
+}
+
 func (t testConnector) GetSystemUser() (string, error) {
-  var systemUser string
+  var user string
   err := t.c.(*sql.Connector).QueryRowContext(context.Background(), "SELECT SYSTEM_USER;", func(row *sql2.Row) error {
-    return row.Scan(&systemUser)
+    return row.Scan(&user)
   })
-  return systemUser, err
+  return user, err
+}
+
+func (t testConnector) GetCurrentUser(database string) (string, string, error) {
+  if database == "" {
+    database = "master"
+  }
+  t.c.(*sql.Connector).Database = database
+  var current, system string
+  err := t.c.(*sql.Connector).QueryRowContext(context.Background(), "SELECT CURRENT_USER, SYSTEM_USER;", func(row *sql2.Row) error {
+    return row.Scan(&current, &system)
+  })
+  return current, system, err
 }
 
 func templateToString(name, text string, data interface{}) (string, error) {

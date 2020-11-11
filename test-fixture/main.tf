@@ -1,8 +1,6 @@
-resource "random_password" "sa" {
-  keepers = {
-    username = "sa"
-  }
-  length = 16
+locals {
+  local_username = "sa"
+  local_password = "!!up3R!!3cR37"
 }
 
 resource "docker_image" "mssql" {
@@ -17,7 +15,7 @@ resource "docker_container" "mssql" {
     internal = 1433
     external = 1433
   }
-  env = ["ACCEPT_EULA=Y", "SA_PASSWORD=${random_password.sa.result}"]
+  env = ["ACCEPT_EULA=Y", "SA_PASSWORD=${local.local_password}"]
 }
 
 resource "local_file" "local_env" {
@@ -25,7 +23,7 @@ resource "local_file" "local_env" {
   directory_permission = "0755"
   file_permission      = "0600"
   sensitive_content    = <<-EOT
-                         export MSSQL_USERNAME='${random_password.sa.keepers.username}'
-                         export MSSQL_PASSWORD='${random_password.sa.result}'
+                         export MSSQL_USERNAME='${local.local_username}'
+                         export MSSQL_PASSWORD='${local.local_password}'
                          EOT
 }
