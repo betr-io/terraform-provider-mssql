@@ -8,9 +8,10 @@ import (
   "testing"
 )
 
-func TestAccLogin_Basic(t *testing.T) {
+func TestAccLogin_Local_Basic(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
+    IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(t, state) },
     Steps: []resource.TestStep{
@@ -37,9 +38,10 @@ func TestAccLogin_Basic(t *testing.T) {
   })
 }
 
-func TestAccLogin_Update(t *testing.T) {
+func TestAccLogin_Local_Update(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
+    IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(t, state) },
     Steps: []resource.TestStep{

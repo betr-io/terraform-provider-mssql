@@ -13,10 +13,12 @@ import (
   "time"
 )
 
+var runLocalAccTests bool
 var testAccProvider *schema.Provider
 var testAccProviders map[string]func() (*schema.Provider, error)
 
 func init() {
+  _, runLocalAccTests = os.LookupEnv("TF_ACC_LOCAL")
   testAccProvider = Provider(sql.GetFactory())
   testAccProviders = map[string]func() (*schema.Provider, error){
     "mssql": func() (*schema.Provider, error) {

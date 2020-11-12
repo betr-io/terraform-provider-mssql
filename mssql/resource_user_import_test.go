@@ -6,9 +6,10 @@ import (
   "testing"
 )
 
-func TestAccUser_importBasic(t *testing.T) {
+func TestAccUser_Local_BasicImport(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
+    IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckUserDestroy(t, state) },
     Steps: []resource.TestStep{

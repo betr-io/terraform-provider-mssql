@@ -37,3 +37,6 @@ test:
 
 testacc:
 	if [ -f .local.env ]; then source .local.env; fi && TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+
+testacc-local:
+	if [ -f .local.env ]; then source .local.env; fi && TF_ACC_LOCAL=1 go test $(TEST) -v $(TESTARGS) -timeout 120m

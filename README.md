@@ -1,21 +1,57 @@
-# Terraform Provider mssql
+# Terraform Provider `mssql`
 
-Run the following command to build the provider
+## Requirements
+
+- [Terraform](https://www.terraform.io/downloads.html) 0.13.x
+- [Go](https://golang.org/doc/install) 1.15 (to build the provider plugin)
+
+## Usage
+
+## Building the provider
+
+Clone the repository
 
 ```shell
-go build -o terraform-provider-mssql
+git clone git@github.com:betr-io/terraform-provider-mssql
 ```
 
-## Test sample configuration
+Enter the provider directory and build the provider
 
-First, build and install the provider.
+```shell
+cd terraform-provider-mssql
+make build
+```
+
+To build and isntall the provider locally
 
 ```shell
 make install
 ```
 
-Then, run the following command to initialize the workspace and apply the sample configuration.
+## Developing the provider
+
+If you wish to work on the provider, you'll first need [Go](https://www.golang.org) installed on your machine (version 1.15+).
+
+To compile the provider, run `make build`. This will build the provider.
+
+To run the unit test, you can simply run `make test`.
+
+To run acceptance tests against a local SQL Server running in Docker, you must have [Docker](https://docs.docker.com/get-docker/) installed. You can then run the following commands
 
 ```shell
-terraform init && terraform apply
+(cd test-fixtures/local && terraform apply)
+make testacc-local
+(cd test-fixtures/local && terraform destroy)
 ```
+
+This will spin up a SQL server running in a container on your local machine, run the tests that can run against a SQL Server, and destroy the container.
+
+In order to run the full suite of acceptance tests, run `make testacc`. Again, to spin up a local SQL Server container in docker, and corresponding resources in Azure, modify `test-fixtures/all/terraform.tfvars` to match your environment and run
+
+```shell
+(cd test-fixtures/all && terraform apply)
+make testacc
+(cd test-fixtures/all && terraform destroy)
+```
+
+> **NOTE**: This will create resources in Azure and _will_ incur costs.

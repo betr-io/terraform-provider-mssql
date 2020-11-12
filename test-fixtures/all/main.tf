@@ -19,7 +19,7 @@ resource "docker_container" "mssql" {
 }
 
 resource "local_file" "local_env" {
-  filename             = "${path.root}/../.local.env"
+  filename             = "${path.root}/../../.local.env"
   directory_permission = "0755"
   file_permission      = "0600"
   sensitive_content    = <<-EOT
