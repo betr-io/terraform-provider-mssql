@@ -30,7 +30,8 @@ resource "local_file" "local_env" {
   directory_permission = "0755"
   file_permission      = "0600"
   sensitive_content    = <<-EOT
-                         export MSSQL_USERNAME='${local.local_username}'
-                         export MSSQL_PASSWORD='${local.local_password}'
+                         TF_ACC_LOCAL=1
+                         MSSQL_USERNAME='${local.local_username}'
+                         MSSQL_PASSWORD='${local.local_password}'
                          EOT
 }

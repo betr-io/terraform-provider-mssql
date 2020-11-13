@@ -34,11 +34,19 @@ func TestProvider(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-  if v := os.Getenv("MSSQL_USERNAME"); v == "" {
-    t.Fatal("MSSQL_USERNAME must be set for acceptance tests")
+  var keys []string
+  _, local := os.LookupEnv("TF_ACC_LOCAL")
+  _, azure := os.LookupEnv("TF_ACC_LOCAL")
+  if local || azure {
+    keys = append(keys, "MSSQL_USERNAME", "MSSQL_PASSWORD")
   }
-  if v := os.Getenv("MSSQL_PASSWORD"); v == "" {
-    t.Fatal("MSSQL_PASSWORD must be set for acceptance tests")
+  if azure {
+    keys = append(keys, "MSSQL_TENANT_ID", "MSSQL_CLIENT_ID", "MSSQL_CLIENT_SECRET", "TF_ACC_SQL_SERVER", "TF_ACC_AZURE_USER_CLIENT_ID", "TF_ACC_AZURE_USER_CLIENT_SECRET")
+  }
+  for _, key := range keys {
+    if v := os.Getenv(key); v == "" {
+      t.Fatalf("Environment variable %s must be set for acceptance tests", key)
+    }
   }
 }
 

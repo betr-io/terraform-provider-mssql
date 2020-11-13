@@ -48,7 +48,7 @@ func TestAccUser_Local_Update_DefaultSchema(t *testing.T) {
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
-    CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(t, state) },
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
     Steps: []resource.TestStep{
       {
         Config: testAccCheckUser(t, "update", map[string]string{"username": "test_update", "login_name": "user_update", "login_password": "valueIsH8kd$¡"}),

@@ -36,7 +36,7 @@ test:
 	echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
 
 testacc:
-	if [ -f .local.env ]; then source .local.env; fi && TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+	if [ -f .local.env ]; then source <(sed -e 's/^/export /' .local.env); fi && TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
 testacc-local:
-	if [ -f .local.env ]; then source .local.env; fi && TF_ACC_LOCAL=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+	if [ -f .local.env ]; then source <(sed -e 's/^/export /' .local.env); fi && TF_ACC_LOCAL=1 go test $(TEST) -v $(TESTARGS) -timeout 120m

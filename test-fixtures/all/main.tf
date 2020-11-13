@@ -146,13 +146,16 @@ resource "local_file" "local_env" {
   directory_permission = "0755"
   file_permission      = "0600"
   sensitive_content    = <<-EOT
-                         export MSSQL_USERNAME='${local.local_username}'
-                         export MSSQL_PASSWORD='${local.local_password}'
-                         export MSSQL_TENANT_ID='${var.tenant_id}'
-                         export MSSQL_CLIENT_ID='${azuread_service_principal.sa.application_id}'
-                         export MSSQL_CLIENT_SECRET='${azuread_service_principal_password.sa.value}'
-                         export TF_ACC_SQL_SERVER='${azurerm_mssql_server.sql_server.fully_qualified_domain_name}'
-                         export TF_ACC_AZURE_MSSQL_USERNAME='${azurerm_mssql_server.sql_server.administrator_login}'
-                         export TF_ACC_AZURE_MSSQL_PASSWORD='${azurerm_mssql_server.sql_server.administrator_login_password}'
+                         TF_ACC=1
+                         MSSQL_USERNAME='${local.local_username}'
+                         MSSQL_PASSWORD='${local.local_password}'
+                         MSSQL_TENANT_ID='${var.tenant_id}'
+                         MSSQL_CLIENT_ID='${azuread_service_principal.sa.application_id}'
+                         MSSQL_CLIENT_SECRET='${azuread_service_principal_password.sa.value}'
+                         TF_ACC_SQL_SERVER='${azurerm_mssql_server.sql_server.fully_qualified_domain_name}'
+                         TF_ACC_AZURE_MSSQL_USERNAME='${azurerm_mssql_server.sql_server.administrator_login}'
+                         TF_ACC_AZURE_MSSQL_PASSWORD='${azurerm_mssql_server.sql_server.administrator_login_password}'
+                         TF_ACC_AZURE_USER_CLIENT_ID='${azuread_service_principal.user.application_id}'
+                         TF_ACC_AZURE_USER_CLIENT_SECRET='${azuread_service_principal_password.user.value}'
                          EOT
 }
