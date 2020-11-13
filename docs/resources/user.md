@@ -60,3 +60,11 @@ The following attributes are exported:
 
 * `principal_id` - The principal id of this database user.
 * `authentication_type` - One of `DATABASE`, `INSTANCE`, or `EXTERNAL`.
+
+## Import
+
+A SQL Server database user can be imported using the server URL, `database`, and `user name`, e.g.
+
+```shell
+terraform import mssql_user.example 'mssql://example-sql-server.database.windows.net/master/user@example.com'
+```

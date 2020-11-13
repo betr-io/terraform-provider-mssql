@@ -7,7 +7,7 @@ The `mssql_login` resource creates and manages a login on a SQL Server.
 ```hcl
 resource "mssql_login" "example" {
   server {
-    host = "example-server.database.windows.net"
+    host = "example-sql-server.database.windows.net"
     azure_login {}
   }
   login_name = "testlogin"
@@ -49,3 +49,11 @@ The `azure_login` block supports the following arguments:
 The following attributes are exported:
 
 * `principal_id` - The principal id of this server login.
+
+## Import
+
+A SQL Server login can be imported using the server URL and `login name`, e.g.
+
+```shell
+terraform import mssql_login.example 'mssql://example-sql-server.database.windows.net/testlogin'
+```
