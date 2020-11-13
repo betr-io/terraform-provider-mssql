@@ -11,10 +11,10 @@ func TestAccUser_Local_BasicImport(t *testing.T) {
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
-    CheckDestroy:      func(state *terraform.State) error { return testAccCheckUserDestroy(t, state) },
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckUserDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckUser(t, "test_import", map[string]string{"username": "user_import", "login_name": "user_import", "login_password": "valueIsH8kd$¡"}),
+        Config: testAccCheckUser(t, "test_import", false, map[string]interface{}{"username": "user_import", "login_name": "user_import", "login_password": "valueIsH8kd$¡"}),
         Check: resource.ComposeTestCheckFunc(
           testAccCheckUserExists("mssql_user.test_import"),
         ),

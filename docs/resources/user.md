@@ -29,7 +29,7 @@ The following arguments are supported:
 * `password` - (Optional) The password of the database user. Conflicts with the `login_name` argument. Changing this forces a new resource to be created.
 * `login_name` - (Optional) The login name of the database user. This must refer to an existing SQL Server login name. Conflicts with the `password` argument. Changing this forces a new resource to be created.
 * `default_schema` - (Optional) Specifies the first schema that will be searched by the server when it resolves the names of objects for this database user. Defaults to `dbo`.
-* `default_language` - (Optional) Specifies the default language for the user. If no default language is specified, the default language for the user will bed the default language of the database. This argument does not apply to Azure SQL Database.
+* `default_language` - (Optional) Specifies the default language for the user. If no default language is specified, the default language for the user will bed the default language of the database. This argument does not apply to Azure SQL Database or if the user is not a contained database user.
 * `roles` - (Optional) List of database roles the user has. Defaults to none.
 
 -> If only `username` is specified, an external user is created. The username must be in a format appropriate to the external user created, and will vary between SQL Server types. If `password` is specified, a user that authenticates at the database is created, and if `login_name` is specified, a user that authenticates at the server is created.

@@ -35,8 +35,8 @@ func TestProvider(t *testing.T) {
 
 func testAccPreCheck(t *testing.T) {
   var keys []string
+  _, azure := os.LookupEnv("TF_ACC")
   _, local := os.LookupEnv("TF_ACC_LOCAL")
-  _, azure := os.LookupEnv("TF_ACC_LOCAL")
   if local || azure {
     keys = append(keys, "MSSQL_USERNAME", "MSSQL_PASSWORD")
   }
@@ -48,6 +48,11 @@ func testAccPreCheck(t *testing.T) {
       t.Fatalf("Environment variable %s must be set for acceptance tests", key)
     }
   }
+}
+
+type Check struct {
+  name, op string
+  expected interface{}
 }
 
 type TestConnector interface {
@@ -115,6 +120,25 @@ func getTestUserConnector(a map[string]string, username, password string) (TestC
   connector.Login = &sql.LoginUser{
     Username: username,
     Password: password,
+  }
+  if database, ok := a[databaseProp]; ok {
+    connector.Database = database
+  }
+
+  return testConnector{c: connector}, nil
+}
+
+func getTestExternalConnector(a map[string]string, tenantId, clientId, clientSecret string) (TestConnector, error) {
+  prefix := serverProp + ".0."
+  connector := &sql.Connector{
+    Host:    a[prefix+"host"],
+    Port:    a[prefix+"port"],
+    Timeout: 60 * time.Second,
+  }
+  connector.AzureLogin = &sql.AzureLogin{
+    TenantID:     tenantId,
+    ClientID:     clientId,
+    ClientSecret: clientSecret,
   }
   if database, ok := a[databaseProp]; ok {
     connector.Database = database

@@ -64,6 +64,9 @@ func resourceUser() *schema.Resource {
       defaultLanguageProp: {
         Type:     schema.TypeString,
         Optional: true,
+        DiffSuppressFunc: func(k, old, new string, data *schema.ResourceData) bool {
+          return data.Get(authenticationTypeProp) == "INSTANCE" || old == new
+        },
       },
       rolesProp: {
         Type:     schema.TypeList,

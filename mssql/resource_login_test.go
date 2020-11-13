@@ -54,7 +54,7 @@ func TestAccLogin_Azure_Basic(t *testing.T) {
           resource.TestCheckResourceAttr("mssql_login.basic", "default_database", "master"),
           resource.TestCheckResourceAttr("mssql_login.basic", "default_language", "us_english"),
           resource.TestCheckResourceAttr("mssql_login.basic", "server.#", "1"),
-          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.host", "localhost"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.host", os.Getenv("TF_ACC_SQL_SERVER")),
           resource.TestCheckResourceAttr("mssql_login.basic", "server.0.port", "1433"),
           resource.TestCheckResourceAttr("mssql_login.basic", "server.0.azure_login.#", "1"),
           resource.TestCheckResourceAttr("mssql_login.basic", "server.0.azure_login.0.tenant_id", os.Getenv("MSSQL_TENANT_ID")),
@@ -175,7 +175,6 @@ func TestAccLogin_Local_UpdateDefaultLanguage(t *testing.T) {
 func TestAccLogin_Azure_UpdateLoginName(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
-    IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
     Steps: []resource.TestStep{
@@ -201,7 +200,6 @@ func TestAccLogin_Azure_UpdateLoginName(t *testing.T) {
 func TestAccLogin_Azure_UpdatePassword(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
-    IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
     Steps: []resource.TestStep{
@@ -227,7 +225,6 @@ func TestAccLogin_Azure_UpdatePassword(t *testing.T) {
 func TestAccLogin_Azure_UpdateDefaultDatabase(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
-    IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
     Steps: []resource.TestStep{
@@ -253,7 +250,6 @@ func TestAccLogin_Azure_UpdateDefaultDatabase(t *testing.T) {
 func TestAccLogin_Azure_UpdateDefaultLanguage(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
-    IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
     Steps: []resource.TestStep{
@@ -279,7 +275,7 @@ func TestAccLogin_Azure_UpdateDefaultLanguage(t *testing.T) {
 func testAccCheckLogin(t *testing.T, name string, azure bool, data map[string]interface{}) string {
   text := `resource "mssql_login" "{{ .name }}" {
              server {
-               host = "localhost"
+               host = "{{ .host }}"
                {{ if .azure }} azure_login {} {{ else }} login {} {{ end }}
              }
              login_name = "{{ .login_name }}"
@@ -289,6 +285,11 @@ func testAccCheckLogin(t *testing.T, name string, azure bool, data map[string]in
            }`
   data["name"] = name
   data["azure"] = azure
+  if azure {
+    data["host"] = os.Getenv("TF_ACC_SQL_SERVER")
+  } else {
+    data["host"] = "localhost"
+  }
   res, err := templateToString(name, text, data)
   if err != nil {
     t.Fatalf("%s", err)
@@ -317,11 +318,6 @@ func testAccCheckLoginDestroy(state *terraform.State) error {
     }
   }
   return nil
-}
-
-type Check struct {
-  name, op string
-  expected interface{}
 }
 
 func testAccCheckLoginExists(resource string, checks ...Check) resource.TestCheckFunc {

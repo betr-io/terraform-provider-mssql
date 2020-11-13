@@ -14,7 +14,7 @@ func TestAccLogin_Local_BasicImport(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckLogin(t, "test_import", false, map[string]string{"login_name": "login_import", "password": "valueIsH8kd$¡"}),
+        Config: testAccCheckLogin(t, "test_import", false, map[string]interface{}{"login_name": "login_import", "password": "valueIsH8kd$¡"}),
         Check: resource.ComposeTestCheckFunc(
           testAccCheckLoginExists("mssql_login.test_import"),
         ),
