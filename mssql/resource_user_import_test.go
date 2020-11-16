@@ -20,9 +20,10 @@ func TestAccUser_Local_BasicImport(t *testing.T) {
         ),
       },
       {
-        ResourceName:            "mssql_user.test_import",
-        ImportState:             true,
-        ImportStateVerify:       true,
+        ResourceName:      "mssql_user.test_import",
+        ImportState:       true,
+        ImportStateVerify: true,
+        ImportStateIdFunc: testAccImportStateId("mssql_user.test_import", false),
       },
     },
   })

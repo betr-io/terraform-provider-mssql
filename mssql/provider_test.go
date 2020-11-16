@@ -4,8 +4,11 @@ import (
   "bytes"
   "context"
   sql2 "database/sql"
+  "fmt"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+  "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
   "os"
+  "strconv"
   "terraform-provider-mssql/mssql/model"
   "terraform-provider-mssql/sql"
   "testing"
@@ -185,4 +188,17 @@ func templateToString(name, text string, data interface{}) (string, error) {
     return "", err
   }
   return doc.String(), nil
+}
+
+func testAccImportStateId(resource string, azure bool) func(state *terraform.State) (string, error) {
+  return func(state *terraform.State) (string, error) {
+    rs, ok := state.RootModule().Resources[resource]
+    if !ok {
+      return "", fmt.Errorf("not found: %s", resource)
+    }
+    if rs.Primary.ID == "" {
+      return "", fmt.Errorf("no record ID is set")
+    }
+    return rs.Primary.ID + "?azure=" + strconv.FormatBool(azure), nil
+  }
 }

@@ -112,7 +112,15 @@ func serverFromId(id string) ([]map[string]interface{}, *url.URL, error) {
   }
   if login != nil && azureLogin != nil {
     // prefer azure login
-    login = nil
+    azure := true
+    if v, ok := values["azure"]; ok {
+      azure = len(v) == 0 || strings.ToLower(v[0]) == "true"
+    }
+    if azure {
+      login = nil
+    } else {
+      azureLogin = nil
+    }
   }
 
   return []map[string]interface{}{{

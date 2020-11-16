@@ -276,7 +276,7 @@ func testAccCheckLogin(t *testing.T, name string, azure bool, data map[string]in
   text := `resource "mssql_login" "{{ .name }}" {
              server {
                host = "{{ .host }}"
-               {{ if .azure }} azure_login {} {{ else }} login {} {{ end }}
+               {{ if .azure }}azure_login {}{{ else }}login {}{{ end }}
              }
              login_name = "{{ .login_name }}"
              password   = "{{ .password }}"
