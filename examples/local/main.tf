@@ -6,12 +6,16 @@ terraform {
       version = "~> 2.7.2"
     }
     mssql = {
-      versions = ["0.0.1"]
-      source   = "betr.io/betr/mssql"
+      source  = "betr-io/mssql"
+      version = "~> 0.1.0"
     }
     random = {
       source  = "hashicorp/random"
       version = "~> 2.3"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "0.6.0"
     }
   }
 }
@@ -24,6 +28,14 @@ provider "mssql" {
 
 provider "random" {}
 
+#
+# Creates a SQL Server running in a docker container on the local machine.
+#
+locals {
+  local_username = "sa"
+  local_password = "!!up3R!!3cR37"
+}
+
 resource "docker_image" "mssql" {
   name         = "mcr.microsoft.com/mssql/server"
   keep_locally = true
@@ -32,73 +44,56 @@ resource "docker_image" "mssql" {
 resource "docker_container" "mssql" {
   name  = "mssql"
   image = docker_image.mssql.latest
-  ports {
-    internal = 1433
-    external = 1433
+  env   = ["ACCEPT_EULA=Y", "SA_PASSWORD=${local.local_password}"]
+}
+
+resource "time_sleep" "wait_5_seconds" {
+  depends_on = [docker_container.mssql]
+
+  create_duration = "5s"
+}
+
+#
+# Creates a login and user in the SQL Server
+#
+resource "random_password" "example" {
+  keepers = {
+    login_name = "testlogin"
+    username   = "testuser"
   }
-  env = ["ACCEPT_EULA=Y", "SA_PASSWORD=$$up3R$$3cR37"]
-}
-
-resource "random_string" "username" {
-  length  = 16
-  special = false
-}
-
-resource "random_password" "password" {
   length  = 32
   special = true
 }
 
-data "mssql_server" "db" {
-  host = "localhost"
-  administrator_login {
-    username = "sa"
-    password = "$$up3R$$3cR37"
-  }
-
-  depends_on = [
-    docker_container.mssql
-  ]
-}
-
-resource "mssql_user_login" "new" {
-  server_encoded = data.mssql_server.db.encoded
-  username       = random_string.username.result
-  password       = random_password.password.result
-
-  depends_on = [
-    docker_container.mssql
-  ]
-}
-
-resource "mssql_user_login" "other" {
-  server_encoded = data.mssql_server.db.encoded
-  username       = "magne"
-  password       = "1gaMnessumsaR"
-
-  depends_on = [
-    docker_container.mssql
-  ]
-}
-
-data "mssql_roles" "all" {
-  server_encoded = data.mssql_server.db.encoded
-}
-
-data "mssql_roles" "other" {
+resource "mssql_login" "example" {
   server {
-    host = "localhost"
-    administrator_login {
-      username = "sa"
-      password = "$$up3R$$3cR37"
+    host = docker_container.mssql.ip_address
+    login {
+      username = local.local_username
+      password = local.local_password
     }
   }
+  login_name = random_password.example.keepers.login_name
+  password   = random_password.example.result
 
-  depends_on = [
-    docker_container.mssql
-  ]
+  depends_on = [time_sleep.wait_5_seconds]
 }
 
-output "roles" {
-  value = data.mssql_roles.all.roles
+resource "mssql_user" "example" {
+  server {
+    host = docker_container.mssql.ip_address
+    login {
+      username = local.local_username
+      password = local.local_password
+    }
+  }
+  username   = random_password.example.keepers.username
+  login_name = mssql_login.example.login_name
+}
+
+output "login" {
+  value = {
+    login_name = mssql_login.example.login_name,
+    password   = mssql_login.example.password
+  }
 }

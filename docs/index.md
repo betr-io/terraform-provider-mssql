@@ -5,6 +5,15 @@ The SQL Server provider exposes resources used to manage the configuration of re
 ## Example Usage
 
 ```hcl
+terraform {
+  required_providers {
+    mssql = {
+      source = "betr-io/mssql"
+      version = "0.1.0"
+    }
+  }
+}
+
 provider "mssql" {
   debug = "false"
 }
@@ -18,6 +27,7 @@ resource "mssql_login" "example" {
     }
   }
   login_name = "testlogin"
+  password   = "NotSoS3cret?"
 }
 
 resource "mssql_user" "example" {

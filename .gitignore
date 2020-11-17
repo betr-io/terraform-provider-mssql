@@ -2,7 +2,6 @@
 /.vscode/
 /bin/
 /dist/
-/examples/
 .local.env
 terraform-provider-mssql
 terraform-provider-mssql.log
