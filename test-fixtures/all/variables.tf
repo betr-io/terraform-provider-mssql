@@ -20,7 +20,7 @@ variable "tenant_id" {
   type        = string
 }
 
-variable "local_ip_address" {
-  description = "The external IP address of the machine running the acceptance tests. This is necessary to allow access to the Azure SQL Server resource."
-  type        = string
+variable "local_ip_addresses" {
+  description = "The external IP addresses of the machines running the acceptance tests. This is necessary to allow access to the Azure SQL Server resource."
+  type        = list(string)
 }

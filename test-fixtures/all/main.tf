@@ -123,11 +123,12 @@ resource "azuread_group_member" "sql" {
 }
 
 resource "azurerm_sql_firewall_rule" "sql_server_fw_rule" {
-  name                = "AllowIP"
+  count               = length(var.local_ip_addresses)
+  name                = "AllowIP ${count.index}"
   resource_group_name = azurerm_mssql_server.sql_server.resource_group_name
   server_name         = azurerm_mssql_server.sql_server.name
-  start_ip_address    = var.local_ip_address
-  end_ip_address      = var.local_ip_address
+  start_ip_address    = var.local_ip_addresses[count.index]
+  end_ip_address      = var.local_ip_addresses[count.index]
 }
 
 # The Azure SQL Database used in tests
@@ -156,6 +157,7 @@ resource "local_file" "local_env" {
                          TF_ACC_AZURE_MSSQL_USERNAME='${azurerm_mssql_server.sql_server.administrator_login}'
                          TF_ACC_AZURE_MSSQL_PASSWORD='${azurerm_mssql_server.sql_server.administrator_login_password}'
                          TF_ACC_AZURE_USER_CLIENT_ID='${azuread_service_principal.user.application_id}'
+                         TF_ACC_AZURE_USER_CLIENT_USER='${azuread_service_principal.user.display_name}'
                          TF_ACC_AZURE_USER_CLIENT_SECRET='${azuread_service_principal_password.user.value}'
                          EOT
 }

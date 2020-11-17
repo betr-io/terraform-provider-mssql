@@ -9,29 +9,48 @@ import (
 
 func (c *Connector) GetUser(ctx context.Context, database, username string) (*model.User, error) {
   cmd := `DECLARE @stmt nvarchar(max)
-          SET @stmt = 'WITH CTE_Roles (principal_id, role_principal_id) AS ' +
-                      '(' +
-                      '  SELECT member_principal_id, role_principal_id FROM ' + QuoteName(@database) + '.[sys].[database_role_members] WHERE member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ')' +
-                      '  UNION ALL ' +
-                      '  SELECT member_principal_id, drm.role_principal_id FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm' +
-                      '    INNER JOIN CTE_Roles cr ON drm.member_principal_id = cr.role_principal_id' +
-                      ') ' +
-                      'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), COALESCE(sl.name, ''''), COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
-                      'FROM ' + QuoteName(@database) + '.[sys].[database_principals] p' +
-                      '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
-                      '  LEFT JOIN [master].[sys].[sql_logins] sl ON p.sid = sl.sid ' +
-                      'WHERE p.name = ' + QuoteName(@username, '''') + ' ' +
-                      'GROUP BY p.principal_id, p.name, p.authentication_type_desc, p.default_schema_name, p.default_language_name, sl.name'
+          IF @@VERSION LIKE 'Microsoft SQL Azure%'
+            BEGIN
+              SET @stmt = 'WITH CTE_Roles (principal_id, role_principal_id) AS ' +
+                          '(' +
+                          '  SELECT member_principal_id, role_principal_id FROM [sys].[database_role_members] WHERE member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ')' +
+                          '  UNION ALL ' +
+                          '  SELECT member_principal_id, drm.role_principal_id FROM [sys].[database_role_members] drm' +
+                          '    INNER JOIN CTE_Roles cr ON drm.member_principal_id = cr.role_principal_id' +
+                          ') ' +
+                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, '''', COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
+                          'FROM [sys].[database_principals] p' +
+                          '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
+                          'WHERE p.name = ' + QuoteName(@username, '''') + ' ' +
+                          'GROUP BY p.principal_id, p.name, p.authentication_type_desc, p.default_schema_name, p.default_language_name, p.sid'
+            END
+          ELSE
+            BEGIN
+              SET @stmt = 'WITH CTE_Roles (principal_id, role_principal_id) AS ' +
+                          '(' +
+                          '  SELECT member_principal_id, role_principal_id FROM ' + QuoteName(@database) + '.[sys].[database_role_members] WHERE member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ')' +
+                          '  UNION ALL ' +
+                          '  SELECT member_principal_id, drm.role_principal_id FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm' +
+                          '    INNER JOIN CTE_Roles cr ON drm.member_principal_id = cr.role_principal_id' +
+                          ') ' +
+                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, COALESCE(sl.name, ''''), COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
+                          'FROM ' + QuoteName(@database) + '.[sys].[database_principals] p' +
+                          '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
+                          '  LEFT JOIN [master].[sys].[sql_logins] sl ON p.sid = sl.sid ' +
+                          'WHERE p.name = ' + QuoteName(@username, '''') + ' ' +
+                          'GROUP BY p.principal_id, p.name, p.authentication_type_desc, p.default_schema_name, p.default_language_name, p.sid, sl.name'
+            END
           EXEC (@stmt)`
   var (
     user  model.User
+    sid   []byte
     roles string
   )
   err := c.
     setDatabase(&database).
     QueryRowContext(ctx, cmd,
       func(r *sql.Row) error {
-        return r.Scan(&user.PrincipalID, &user.Username, &user.AuthType, &user.DefaultSchema, &user.DefaultLanguage, &user.LoginName, &roles)
+        return r.Scan(&user.PrincipalID, &user.Username, &user.AuthType, &user.DefaultSchema, &user.DefaultLanguage, &sid, &user.LoginName, &roles)
       },
       sql.Named("database", database),
       sql.Named("username", username),
@@ -41,6 +60,19 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
       return nil, nil
     }
     return nil, err
+  }
+  if user.AuthType == "INSTANCE" && user.LoginName == "" {
+    cmd = "SELECT name FROM [sys].[sql_logins] WHERE sid = @sid"
+    c.Database = "master"
+    err = c.QueryRowContext(ctx, cmd,
+      func(r *sql.Row) error {
+        return r.Scan(&user.LoginName)
+      },
+      sql.Named("sid", sid),
+    )
+    if err != nil {
+      return nil, err
+    }
   }
   if roles == "" {
     user.Roles = make([]string, 0)

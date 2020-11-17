@@ -222,7 +222,10 @@ func connectLoop(connector driver.Connector, timeout time.Duration) (*sql.DB, er
       if strings.Contains(err.Error(), "Login failed") {
         return nil, err
       }
-      if strings.Contains(err.Error(), "UserLogin error") {
+      if strings.Contains(err.Error(), "Login error") {
+        return nil, err
+      }
+      if strings.Contains(err.Error(), "error retrieving access token") {
         return nil, err
       }
       log.Println(errors.Wrap(err, "failed to connect to database"))

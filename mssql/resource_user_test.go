@@ -50,11 +50,11 @@ func TestAccUser_Azure_Instance(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckUserDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckUser(t, "instance", true, map[string]interface{}{"username": "instance", "login_name": "user_instance", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckUser(t, "instance", true, map[string]interface{}{"database": "testdb", "username": "instance", "login_name": "user_instance", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
           testAccCheckUserExists("mssql_user.instance"),
           testAccCheckDatabaseUserWorks("mssql_user.instance", "user_instance", "valueIsH8kd$¡"),
-          resource.TestCheckResourceAttr("mssql_user.instance", "database", "master"),
+          resource.TestCheckResourceAttr("mssql_user.instance", "database", "testdb"),
           resource.TestCheckResourceAttr("mssql_user.instance", "username", "instance"),
           resource.TestCheckResourceAttr("mssql_user.instance", "login_name", "user_instance"),
           resource.TestCheckResourceAttr("mssql_user.instance", "authentication_type", "INSTANCE"),
@@ -85,13 +85,14 @@ func TestAccUser_Azure_Database(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckUserDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckUser(t, "database", true, map[string]interface{}{"username": "database", "password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckUser(t, "database", true, map[string]interface{}{"database": "testdb", "username": "database_user", "password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
           testAccCheckUserExists("mssql_user.database"),
-          testAccCheckDatabaseUserWorks("mssql_user.database", "database", "valueIsH8kd$¡"),
-          resource.TestCheckResourceAttr("mssql_user.database", "database", "master"),
-          resource.TestCheckResourceAttr("mssql_user.database", "username", "instance"),
+          testAccCheckDatabaseUserWorks("mssql_user.database", "database_user", "valueIsH8kd$¡"),
+          resource.TestCheckResourceAttr("mssql_user.database", "database", "testdb"),
+          resource.TestCheckResourceAttr("mssql_user.database", "username", "database_user"),
           resource.TestCheckResourceAttr("mssql_user.database", "password", "valueIsH8kd$¡"),
+          resource.TestCheckResourceAttr("mssql_user.database", "login_name", ""),
           resource.TestCheckResourceAttr("mssql_user.database", "authentication_type", "DATABASE"),
           resource.TestCheckResourceAttr("mssql_user.database", "default_schema", "dbo"),
           resource.TestCheckResourceAttr("mssql_user.database", "default_language", ""),
@@ -106,7 +107,6 @@ func TestAccUser_Azure_Database(t *testing.T) {
           resource.TestCheckResourceAttr("mssql_user.database", "server.0.azure_login.0.client_secret", os.Getenv("MSSQL_CLIENT_SECRET")),
           resource.TestCheckResourceAttr("mssql_user.database", "server.0.login.#", "0"),
           resource.TestCheckResourceAttrSet("mssql_user.database", "principal_id"),
-          resource.TestCheckNoResourceAttr("mssql_user.database", "login_name"),
         ),
       },
     },
@@ -116,19 +116,21 @@ func TestAccUser_Azure_Database(t *testing.T) {
 func TestAccUser_Azure_External(t *testing.T) {
   tenantId := os.Getenv("MSSQL_TENANT_ID")
   clientId := os.Getenv("TF_ACC_AZURE_USER_CLIENT_ID")
-  clientSecret := os.Getenv("TF_ACC_AZURE_USER_CLIENT_ID")
+  clientUser := os.Getenv("TF_ACC_AZURE_USER_CLIENT_USER")
+  clientSecret := os.Getenv("TF_ACC_AZURE_USER_CLIENT_SECRET")
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     ProviderFactories: testAccProviders,
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckUserDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckUser(t, "database", true, map[string]interface{}{"username": clientId, "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckUser(t, "database", true, map[string]interface{}{"database": "testdb", "username": clientUser, "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
           testAccCheckUserExists("mssql_user.database"),
           testAccCheckExternalUserWorks("mssql_user.database", tenantId, clientId, clientSecret),
-          resource.TestCheckResourceAttr("mssql_user.database", "database", "master"),
-          resource.TestCheckResourceAttr("mssql_user.database", "username", clientId),
+          resource.TestCheckResourceAttr("mssql_user.database", "database", "testdb"),
+          resource.TestCheckResourceAttr("mssql_user.database", "username", clientUser),
+          resource.TestCheckResourceAttr("mssql_user.database", "login_name", ""),
           resource.TestCheckResourceAttr("mssql_user.database", "authentication_type", "EXTERNAL"),
           resource.TestCheckResourceAttr("mssql_user.database", "default_schema", "dbo"),
           resource.TestCheckResourceAttr("mssql_user.database", "default_language", ""),
@@ -144,7 +146,6 @@ func TestAccUser_Azure_External(t *testing.T) {
           resource.TestCheckResourceAttr("mssql_user.database", "server.0.login.#", "0"),
           resource.TestCheckResourceAttrSet("mssql_user.database", "principal_id"),
           resource.TestCheckNoResourceAttr("mssql_user.database", "password"),
-          resource.TestCheckNoResourceAttr("mssql_user.database", "login_name"),
         ),
       },
     },
@@ -302,7 +303,7 @@ func TestAccUser_Azure_Update_Roles(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckUser(t, "update", true, map[string]interface{}{"username": "test_update", "login_name": "user_update", "login_password": "valueIsH8kd$¡"}),
+        Config: testAccCheckUser(t, "update", true, map[string]interface{}{"database": "testdb", "username": "test_update", "login_name": "user_update", "login_password": "valueIsH8kd$¡"}),
         Check: resource.ComposeTestCheckFunc(
           resource.TestCheckResourceAttr("mssql_user.update", "roles.#", "0"),
           testAccCheckUserExists("mssql_user.update", Check{"roles", "==", []string{}}),
@@ -310,7 +311,7 @@ func TestAccUser_Azure_Update_Roles(t *testing.T) {
         ),
       },
       {
-        Config: testAccCheckUser(t, "update", true, map[string]interface{}{"username": "test_update", "login_name": "user_update", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\",\"db_datawriter\"]"}),
+        Config: testAccCheckUser(t, "update", true, map[string]interface{}{"database": "testdb", "username": "test_update", "login_name": "user_update", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\",\"db_datawriter\"]"}),
         Check: resource.ComposeTestCheckFunc(
           resource.TestCheckResourceAttr("mssql_user.update", "roles.#", "2"),
           resource.TestCheckResourceAttr("mssql_user.update", "roles.0", "db_owner"),
@@ -320,7 +321,7 @@ func TestAccUser_Azure_Update_Roles(t *testing.T) {
         ),
       },
       {
-        Config: testAccCheckUser(t, "update", true, map[string]interface{}{"username": "test_update", "login_name": "user_update", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckUser(t, "update", true, map[string]interface{}{"database": "testdb", "username": "test_update", "login_name": "user_update", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
           resource.TestCheckResourceAttr("mssql_user.update", "roles.#", "1"),
           resource.TestCheckResourceAttr("mssql_user.update", "roles.0", "db_owner"),
@@ -345,8 +346,8 @@ func testAccCheckUser(t *testing.T, name string, azure bool, data map[string]int
            {{ end }}
            resource "mssql_user" "{{ .name }}" {
              server {
-               host = "localhost"
-               {{ if .azure }} azure_login {} {{ else }} login {} {{ end }}
+               host = "{{ .host }}"
+               {{ if .azure }}azure_login {}{{ else }}login {}{{ end }}
              }
              {{ with .database }}database = "{{ . }}"{{ end }}
              username = "{{ .username }}"
