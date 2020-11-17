@@ -69,3 +69,11 @@ make testacc
 ```
 
 > **NOTE**: This will create resources in Azure and _will_ incur costs.
+
+## Release provider
+
+To create a release, do:
+
+- Update `VERSION` in `Makefile` (only used for installing the provider when developing).
+- Push a new valid version tag (e.g. `v1.2.3`) to GitHub.
+- See also [Publishing Providers](https://www.terraform.io/docs/registry/providers/publishing.html).
