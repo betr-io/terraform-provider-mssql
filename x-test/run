@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+go build
+if [ -f ../.local.env ]; then source <(sed -e 's/^/export /' ../.local.env); fi && ./x-test "$@"
