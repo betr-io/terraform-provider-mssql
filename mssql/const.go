@@ -5,6 +5,7 @@ const (
   databaseProp             = "database"
   principalIdProp          = "principal_id"
   usernameProp             = "username"
+  objectIdProp             = "object_id"
   passwordProp             = "password"
   clientIdProp             = "client_id"
   authenticationTypeProp   = "authentication_type"
