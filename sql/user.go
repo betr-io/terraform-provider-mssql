@@ -104,7 +104,14 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
             BEGIN
               IF @@VERSION LIKE 'Microsoft SQL Azure%'
                 BEGIN
-                  SET @stmt = 'CREATE USER ' + QuoteName(@username) + ' FROM EXTERNAL PROVIDER'
+                  IF @objectId != ''
+                    BEGIN
+                      SET @stmt = 'CREATE USER ' + QuoteName(@username) + ' WITH SID=' + CONVERT(varchar(64), CAST(CAST(@objectId AS UNIQUEIDENTIFIER) AS VARBINARY(16)), 1) + ', TYPE=E'
+                    END
+                  ELSE
+                    BEGIN
+                      SET @stmt = 'CREATE USER ' + QuoteName(@username) + ' FROM EXTERNAL PROVIDER'
+                  END
                 END
               ELSE
                 BEGIN
@@ -137,6 +144,7 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
     ExecContext(ctx, cmd,
       sql.Named("database", database),
       sql.Named("username", user.Username),
+      sql.Named("objectId", user.ObjectId),
       sql.Named("loginName", user.LoginName),
       sql.Named("password", user.Password),
       sql.Named("authType", user.AuthType),

@@ -38,6 +38,11 @@ func resourceUser() *schema.Resource {
         Required: true,
         ForceNew: true,
       },
+      objectIdProp: {
+        Type:     schema.TypeString,
+        Optional: true,
+        ForceNew: true,
+      },
       loginNameProp: {
         Type:     schema.TypeString,
         Optional: true,
@@ -95,6 +100,7 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
 
   database := data.Get(databaseProp).(string)
   username := data.Get(usernameProp).(string)
+  objectId := data.Get(objectIdProp).(string)
   loginName := data.Get(loginNameProp).(string)
   password := data.Get(passwordProp).(string)
   defaultSchema := data.Get(defaultSchemaProp).(string)
@@ -123,6 +129,7 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
 
   user := &model.User{
     Username:        username,
+    ObjectId:        objectId,
     LoginName:       loginName,
     Password:        password,
     AuthType:        authType,
