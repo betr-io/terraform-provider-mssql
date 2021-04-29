@@ -6,7 +6,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.11
 	github.com/Azure/go-autorest/autorest/adal v0.9.5
 	github.com/agext/levenshtein v1.2.3 // indirect
-	github.com/denisenkom/go-mssqldb v0.9.0
+	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/go-cmp v0.5.3 // indirect
