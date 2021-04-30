@@ -121,7 +121,7 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                 END
             END
           SET @stmt = @stmt + '; ' +
-                      'DECLARE role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name IN (SELECT value FROM String_Split(' + QuoteName(@roles, '''') + ', '',''));' +
+                      'DECLARE role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name COLLATE SQL_Latin1_General_CP1_CI_AS IN (SELECT value FROM String_Split(' + QuoteName(@roles, '''') + ', '',''));' +
                       'DECLARE @role nvarchar(max);' +
                       'OPEN role_cur;' +
                       'FETCH NEXT FROM role_cur INTO @role;' +
@@ -168,8 +168,8 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
           SET @stmt = @stmt + '; ' +
                       'DECLARE @sql nvarchar(max);' +
                       'DECLARE @role nvarchar(max);' +
-                      'DECLARE del_role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name IN (SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm, ' + QuoteName(@database) + '.[sys].[database_principals] db WHERE drm.member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ') AND drm.role_principal_id = db.principal_id) AND name NOT IN(SELECT value FROM STRING_SPLIT(' + QuoteName(@roles, '''') + ', '',''));' +
-                      'DECLARE add_role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name NOT IN (SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm, ' + QuoteName(@database) + '.[sys].[database_principals] db WHERE drm.member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ') AND drm.role_principal_id = db.principal_id) AND name IN(SELECT value FROM STRING_SPLIT(' + QuoteName(@roles, '''') + ', '',''));' +
+                      'DECLARE del_role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name IN (SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm, ' + QuoteName(@database) + '.[sys].[database_principals] db WHERE drm.member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ') AND drm.role_principal_id = db.principal_id) AND name COLLATE SQL_Latin1_General_CP1_CI_AS NOT IN(SELECT value FROM STRING_SPLIT(' + QuoteName(@roles, '''') + ', '',''));' +
+                      'DECLARE add_role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name NOT IN (SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm, ' + QuoteName(@database) + '.[sys].[database_principals] db WHERE drm.member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ') AND drm.role_principal_id = db.principal_id) AND name COLLATE SQL_Latin1_General_CP1_CI_AS IN(SELECT value FROM STRING_SPLIT(' + QuoteName(@roles, '''') + ', '',''));' +
                       'OPEN del_role_cur;' +
                       'FETCH NEXT FROM del_role_cur INTO @role;' +
                       'WHILE @@FETCH_STATUS = 0' +
