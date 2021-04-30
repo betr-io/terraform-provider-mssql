@@ -3,7 +3,7 @@
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) 0.13.x
-- [Go](https://golang.org/doc/install) 1.15 (to build the provider plugin)
+- [Go](https://golang.org/doc/install) 1.16 (to build the provider plugin)
 
 ## Usage
 
@@ -36,7 +36,7 @@ cd terraform-provider-mssql
 make build
 ```
 
-To build and isntall the provider locally
+To build and install the provider locally
 
 ```shell
 make install
@@ -44,7 +44,7 @@ make install
 
 ## Developing the provider
 
-If you wish to work on the provider, you'll first need [Go](https://www.golang.org) installed on your machine (version 1.15+).
+If you wish to work on the provider, you'll first need [Go](https://www.golang.org) installed on your machine (version 1.16+).
 
 To compile the provider, run `make build`. This will build the provider.
 
@@ -53,9 +53,9 @@ To run the unit test, you can simply run `make test`.
 To run acceptance tests against a local SQL Server running in Docker, you must have [Docker](https://docs.docker.com/get-docker/) installed. You can then run the following commands
 
 ```shell
-(cd test-fixtures/local && terraform apply)
+make docker-start
 make testacc-local
-(cd test-fixtures/local && terraform destroy)
+make docker-stop
 ```
 
 This will spin up a SQL server running in a container on your local machine, run the tests that can run against a SQL Server, and destroy the container.
@@ -63,9 +63,9 @@ This will spin up a SQL server running in a container on your local machine, run
 In order to run the full suite of acceptance tests, run `make testacc`. Again, to spin up a local SQL Server container in docker, and corresponding resources in Azure, modify `test-fixtures/all/terraform.tfvars` to match your environment and run
 
 ```shell
-(cd test-fixtures/all && terraform apply)
+make azure-create
 make testacc
-(cd test-fixtures/all && terraform destroy)
+make azure-destroy
 ```
 
 > **NOTE**: This will create resources in Azure and _will_ incur costs.
