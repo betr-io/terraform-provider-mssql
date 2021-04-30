@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2021-04-30
+
+Thanks to [Anders Båtstrand](https://github.com/anderius) ([PR #8](https://github.com/betr-io/terraform-provider-mssql/pull/8), [PR #9](https://github.com/betr-io/terraform-provider-mssql/pull/9))
+
+### Changed
+
+- Upgrade go-mssqldb to support go version 1.16.
+
+### Fixed
+
+- Cannot create user because of conflicting collation. ([#6](https://github.com/betr-io/terraform-provider-mssql/issues/6))
+
 ## [0.2.0] - 2021-04-06
 
 When it is not possible to give AD role: _Directory Readers_ to the Sql Server Identity or an AD Group, use *object_id* to add external user.
@@ -30,7 +42,8 @@ Initial release.
 - Resource `mssql_login` to manipulate logins to a SQL Server.
 - Resource `mssql_user` to manipulate users in a SQL Server database.
 
-[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/betr-io/terraform-provider-mssql/releases/tag/v0.1.0
