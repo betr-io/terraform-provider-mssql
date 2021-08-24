@@ -3,7 +3,7 @@
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) 0.13.x
-- [Go](https://golang.org/doc/install) 1.16 (to build the provider plugin)
+- [Go](https://golang.org/doc/install) 1.17 (to build the provider plugin)
 
 ## Usage
 
@@ -12,7 +12,7 @@ terraform {
   required_version = "~> 0.13"
   required_providers {
     mssql = {
-      versions = "~> 0.0.1"
+      versions = "~> 0.2.2"
       source = "betr.io/betr/mssql"
     }
   }
@@ -44,7 +44,7 @@ make install
 
 ## Developing the provider
 
-If you wish to work on the provider, you'll first need [Go](https://www.golang.org) installed on your machine (version 1.16+).
+If you wish to work on the provider, you'll first need [Go](https://www.golang.org) installed on your machine (version 1.17+).
 
 To compile the provider, run `make build`. This will build the provider.
 
@@ -54,7 +54,7 @@ To run acceptance tests against a local SQL Server running in Docker, you must h
 
 ```shell
 make docker-start
-make testacc-local
+TESTARGS=-count=1 make testacc-local
 make docker-stop
 ```
 
@@ -64,7 +64,7 @@ In order to run the full suite of acceptance tests, run `make testacc`. Again, t
 
 ```shell
 make azure-create
-make testacc
+TESTARGS=-count=1 make testacc
 make azure-destroy
 ```
 

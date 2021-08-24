@@ -3,23 +3,23 @@ terraform {
   required_providers {
     azuread = {
       source  = "hashicorp/azuread"
-      version = "~> 1.0"
+      version = "~> 1.6.0"
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 2.35.0"
+      version = "~> 2.73.0"
     }
     docker = {
-      source  = "terraform-providers/docker"
-      version = "~> 2.7.2"
+      source  = "kreuzwerker/docker"
+      version = "~> 2.15.0"
     }
     local = {
       source  = "hashicorp/local"
-      version = "~> 2.0"
+      version = "~> 2.1"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.0"
+      version = "~> 3.1"
     }
   }
 }

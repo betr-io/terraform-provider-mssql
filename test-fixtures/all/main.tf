@@ -55,13 +55,15 @@ resource "random_password" "user" {
 
 # An Azure AD group assigned the role 'Directory Readers'. The Azure SQL Server needs to be assigned to this group to enable external logins.
 data "azuread_group" "sql_servers" {
-  name = var.sql_servers_group
+  display_name = var.sql_servers_group
 }
 
 # An Azure AD service principal used as Azure Administrator for the Azure SQL Server resource
 resource "azuread_application" "sa" {
-  name     = random_password.sa.keepers.name
-  homepage = "https://test.example.com"
+  display_name = random_password.sa.keepers.name
+  web {
+    homepage_url = "https://test.example.com"
+  }
 }
 
 resource "azuread_service_principal" "sa" {
@@ -76,8 +78,10 @@ resource "azuread_service_principal_password" "sa" {
 
 # An Azure AD service principal used to test creating an external login to the Azure SQL server resource
 resource "azuread_application" "user" {
-  name     = random_password.user.keepers.name
-  homepage = "https://test.example.com"
+  display_name = random_password.user.keepers.name
+  web {
+    homepage_url = "https://test.example.com"
+  }
 }
 
 resource "azuread_service_principal" "user" {
