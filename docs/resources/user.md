@@ -64,7 +64,11 @@ The following attributes are exported:
 
 ## Import
 
-A SQL Server database user can be imported using the server URL, `database`, and `user name`, e.g.
+Before importing `mssql_user`, you must to configure the authentication to your sql server:
+1. Using Azure AD authentication, you must set the following environment variables: `MSSQL_TENANT_ID`, `MSSQL_CLIENT_ID` and `MSSQL_CLIENT_SECRET`.
+2. Using SQL authentication, you must set the following environment variables: `MSSQL_USERNAME` and `MSSQL_PASSWORD`.
+
+After that you can import the SQL Server database user using the server URL and `login name`, e.g.
 
 ```shell
 terraform import mssql_user.example 'mssql://example-sql-server.database.windows.net/master/user@example.com'
