@@ -52,7 +52,11 @@ The following attributes are exported:
 
 ## Import
 
-A SQL Server login can be imported using the server URL and `login name`, e.g.
+Before importing `mssql_login`, you must to configure the authentication to your sql server:
+1. Using Azure AD authentication, you must set the following environment variables: `MSSQL_TENANT_ID`, `MSSQL_CLIENT_ID` and `MSSQL_CLIENT_SECRET`.
+2. Using SQL authentication, you must set the following environment variables: `MSSQL_USERNAME` and `MSSQL_PASSWORD`.
+
+After that you can use the import commande using the server URL and `login name`, e.g.
 
 ```shell
 terraform import mssql_login.example 'mssql://example-sql-server.database.windows.net/testlogin'
