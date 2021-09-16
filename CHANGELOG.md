@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2021-09-16
+
+Thanks to [Matthis Holleville](https://github.com/matthisholleville) ([PR #17](https://github.com/betr-io/terraform-provider-mssql/pull/17)), and [bruno-motacardoso](https://github.com/bruno-motacardoso) ([PR #14](https://github.com/betr-io/terraform-provider-mssql/pull/14)).
+
+### Changed
+
+- Add string split function, which should allow the provider to work on SQL Server 2014 (#17).
+- Improved documentation (#14).
+
 ## [0.2.2] - 2021-08-24
 
 ### Changed
@@ -50,7 +59,9 @@ Initial release.
 - Resource `mssql_login` to manipulate logins to a SQL Server.
 - Resource `mssql_user` to manipulate users in a SQL Server database.
 
-[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.1.0...v0.1.1
