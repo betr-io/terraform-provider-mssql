@@ -19,6 +19,8 @@ resource "mssql_user" "example" {
 }
 ```
 
+> Note that in order to create an external user referencing an Azure AD entity (user, application), the Azure SQL Server needs to be a member of an Azure AD group assigned the Azure AD role `Dictionary Reader`.
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -65,6 +67,7 @@ The following attributes are exported:
 ## Import
 
 Before importing `mssql_user`, you must to configure the authentication to your sql server:
+
 1. Using Azure AD authentication, you must set the following environment variables: `MSSQL_TENANT_ID`, `MSSQL_CLIENT_ID` and `MSSQL_CLIENT_SECRET`.
 2. Using SQL authentication, you must set the following environment variables: `MSSQL_USERNAME` and `MSSQL_PASSWORD`.
 
