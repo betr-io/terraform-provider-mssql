@@ -1,10 +1,10 @@
 package sql
 
 import (
-  "context"
-  "database/sql"
-  "strings"
-  "terraform-provider-mssql/mssql/model"
+	"context"
+	"database/sql"
+	"strings"
+	"terraform-provider-mssql/mssql/model"
 )
 
 func (c *Connector) GetUser(ctx context.Context, database, username string) (*model.User, error) {
@@ -120,6 +120,32 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                               'DEFAULT_LANGUAGE = ' + Coalesce(QuoteName(@language), 'NONE')
                 END
             END
+          IF objectproperty(object_id('String_Split'), 'isProcedure') IS NULL
+          BEGIN
+              DECLARE @sql NVARCHAR(MAX);
+              SET @sql = N'Create FUNCTION [dbo].[String_Split]
+                    (
+                        @string    nvarchar(max),
+                        @delimiter nvarchar(max)
+                    )
+                    /*
+                        The same as STRING_SPLIT for compatibility level < 130
+                        https://docs.microsoft.com/en-us/sql/t-sql/functions/string-split-transact-sql?view=sql-server-ver15
+                    */
+                    RETURNS TABLE AS RETURN
+                    (
+                        SELECT 
+                          --ROW_NUMBER ( ) over(order by (select 0))                            AS id     --  intuitive, but not correect
+                            Split.a.value(''let $n := . return count(../*[. << $n]) + 1'', ''int'') AS id
+                          , Split.a.value(''.'', ''NVARCHAR(MAX)'')                                 AS value
+                        FROM
+                        (
+                            SELECT CAST(''<X>''+REPLACE(@string, @delimiter, ''</X><X>'')+''</X>'' AS XML) AS String
+                        ) AS a
+                        CROSS APPLY String.nodes(''/X'') AS Split(a)
+                    )';
+              EXEC sp_executesql @sql;
+          END
           SET @stmt = @stmt + '; ' +
                       'DECLARE role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name COLLATE SQL_Latin1_General_CP1_CI_AS IN (SELECT value FROM String_Split(' + QuoteName(@roles, '''') + ', '',''));' +
                       'DECLARE @role nvarchar(max);' +
@@ -165,11 +191,37 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
             BEGIN
               SET @stmt = @stmt + ', DEFAULT_LANGUAGE = ' + Coalesce(QuoteName(@language), 'NONE')
             END
+          IF objectproperty(object_id('String_Split'), 'isProcedure') IS NULL
+          BEGIN
+              DECLARE @sql NVARCHAR(MAX);
+              SET @sql = N'Create FUNCTION [dbo].[String_Split]
+                    (
+                        @string    nvarchar(max),
+                        @delimiter nvarchar(max)
+                    )
+                    /*
+                        The same as STRING_SPLIT for compatibility level < 130
+                        https://docs.microsoft.com/en-us/sql/t-sql/functions/string-split-transact-sql?view=sql-server-ver15
+                    */
+                    RETURNS TABLE AS RETURN
+                    (
+                        SELECT 
+                          --ROW_NUMBER ( ) over(order by (select 0))                            AS id     --  intuitive, but not correect
+                            Split.a.value(''let $n := . return count(../*[. << $n]) + 1'', ''int'') AS id
+                          , Split.a.value(''.'', ''NVARCHAR(MAX)'')                                 AS value
+                        FROM
+                        (
+                            SELECT CAST(''<X>''+REPLACE(@string, @delimiter, ''</X><X>'')+''</X>'' AS XML) AS String
+                        ) AS a
+                        CROSS APPLY String.nodes(''/X'') AS Split(a)
+                    )';
+              EXEC sp_executesql @sql;
+          END
           SET @stmt = @stmt + '; ' +
                       'DECLARE @sql nvarchar(max);' +
                       'DECLARE @role nvarchar(max);' +
-                      'DECLARE del_role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name IN (SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm, ' + QuoteName(@database) + '.[sys].[database_principals] db WHERE drm.member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ') AND drm.role_principal_id = db.principal_id) AND name COLLATE SQL_Latin1_General_CP1_CI_AS NOT IN(SELECT value FROM STRING_SPLIT(' + QuoteName(@roles, '''') + ', '',''));' +
-                      'DECLARE add_role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name NOT IN (SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm, ' + QuoteName(@database) + '.[sys].[database_principals] db WHERE drm.member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ') AND drm.role_principal_id = db.principal_id) AND name COLLATE SQL_Latin1_General_CP1_CI_AS IN(SELECT value FROM STRING_SPLIT(' + QuoteName(@roles, '''') + ', '',''));' +
+                      'DECLARE del_role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name IN (SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm, ' + QuoteName(@database) + '.[sys].[database_principals] db WHERE drm.member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ') AND drm.role_principal_id = db.principal_id) AND name COLLATE SQL_Latin1_General_CP1_CI_AS NOT IN(SELECT value FROM String_Split(' + QuoteName(@roles, '''') + ', '',''));' +
+                      'DECLARE add_role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name NOT IN (SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm, ' + QuoteName(@database) + '.[sys].[database_principals] db WHERE drm.member_principal_id = DATABASE_PRINCIPAL_ID(' + QuoteName(@username, '''') + ') AND drm.role_principal_id = db.principal_id) AND name COLLATE SQL_Latin1_General_CP1_CI_AS IN(SELECT value FROM String_Split(' + QuoteName(@roles, '''') + ', '',''));' +
                       'OPEN del_role_cur;' +
                       'FETCH NEXT FROM del_role_cur INTO @role;' +
                       'WHILE @@FETCH_STATUS = 0' +
