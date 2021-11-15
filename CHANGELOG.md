@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2021-11-15
+
+Thanks to [Richard Lavey](https://github.com/rlaveycal) ([PR #24](https://github.com/betr-io/terraform-provider-mssql/pull/24)).
+
+### Fixed
+
+- Race condition with String_Split causes failure ([#23](https://github.com/betr-io/terraform-provider-mssql/issues/23))
+
 ## [0.2.3] - 2021-09-16
 
 Thanks to [Matthis Holleville](https://github.com/matthisholleville) ([PR #17](https://github.com/betr-io/terraform-provider-mssql/pull/17)), and [bruno-motacardoso](https://github.com/bruno-motacardoso) ([PR #14](https://github.com/betr-io/terraform-provider-mssql/pull/14)).

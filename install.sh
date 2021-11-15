@@ -1,29 +1,42 @@
 #!/usr/bin/env bash
 
-set -e
+set -Eeuo pipefail
+
+function exit_with_message() {
+    echo -e "\n$@\n" >&2
+    exit 1
+}
 
 if [ -n "${BASH_VERSION}" ]; then
     SOURCE="${BASH_SOURCE[0]}"
 elif [ -n "${ZSH_VERSION}" ]; then
     SOURCE="$0"
 else
-    echo "Unknown shell!"
-    exit 1
+    exit_with_message "Unknown shell!"
 fi
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
     DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
     SOURCE="$(readlink "$SOURCE")"
     [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
-DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+DIR="$( cd -P "$( dirname $( dirname "$SOURCE" ) )" >/dev/null 2>&1 && pwd )"
 
+PARAMS=""
+HELP=0
+LIST=0
 CURRENT=1
+KEEP=0
+FORCE=0
 
 # Parse arguments
 while (( "$#" )); do
     case "$1" in
         -h|--help)
             HELP=1
+            shift
+            ;;
+        -l|--list)
+            LIST=1
             shift
             ;;
         -c|--current)
@@ -43,8 +56,7 @@ while (( "$#" )); do
             shift
             ;;
         -*|--*=)    # Unsupported flags
-            echo "Error: Unsupported flag $1" >&2
-            exit 1
+            exit_with_message "Error: Unsupported flag $1"
             ;;
         *)          # Preserve positional arguments
             PARAMS="$PARAMS $1"
@@ -55,38 +67,58 @@ done
 
 eval set -- "$PARAMS"
 
+[ -e "${DIR}/scripts/version.sh" ] && source "${DIR}/scripts/versions.sh"
+if [[ $(id -u) == 0 ]]; then
+    DEFAULT_TERRAFORM_DIR=/usr/local/bin
+else
+    DEFAULT_TERRAFORM_DIR=$HOME/bin
+fi
+TERRAFORM_DIR=${TERRAFORM_DIR:-$DEFAULT_TERRAFORM_DIR}
+
 echoerr() { cat <<< "$@" 1>&2; }
-
-source "${DIR}/scripts/versions.sh"
-
-if [[ $HELP || $# > 1 ]]; then
-    echoerr "Usage: $0 [options] [version]
+if [[ $HELP == 1 || $# > 1 ]]; then
+    echoerr "
+    Usage: $0 [options] [version]
 
     Options:
+        -l --list        List installed terraform versions.
+        -d --dir         Install directory (default: $TERRAFORM_DIR)
         -c --current     Set this version as current (default).
         -n --no-current  Do not set this version as current.
         -k --keep        Keep other patch versions.
         -f --force       Force download.
         -h --help        Display this message.
 "
-    exit -1
+    exit 1
 fi
+
+if [[ $LIST == 1 || ${#} == 0 ]]; then
+    echo -e "\nInstalled terraform versions:\n"
+    for f in $(ls ${TERRAFORM_DIR}/terraform-* | sort -r); do
+        if [ $(readlink "${TERRAFORM_DIR}/terraform") == $(basename "$f") ]; then CUR='*'; else CUR=' '; fi
+        echo "    $CUR $(echo $f | cut -d- -f 2)"
+    done
+    echo
+    exit
+fi
+
 
 if [[ $# == 1 ]]; then
     TERRAFORM_VERSION=$1
 fi
 
+DOWNLOAD=0
 if [[ ! -e "${TERRAFORM_DIR}/terraform-${TERRAFORM_VERSION}" ]]; then
     echo -e "\nDownloading terraform v${TERRAFORM_VERSION}"
     DOWNLOAD=1
-elif [[ $FORCE ]]; then
+elif [[ $FORCE == 1 ]]; then
     echo -e "\nForce downloading terraform v${TERRAFORM_VERSION}"
     DOWNLOAD=1
 fi
 
-if [[ $DOWNLOAD ]]; then
+if [[ $DOWNLOAD == 1 ]]; then
     TERRAFORM_ZIP="${TERRAFORM_DIR}/terraform.zip"
-    wget -q https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip -O "${TERRAFORM_ZIP}"
+    wget -q https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip -O "${TERRAFORM_ZIP}" || (rm "${TERRAFORM_ZIP}" && exit_with_message "Failed to download terraform-${TERRAFORM_VERSION}")
     echo -e "\nInstalling terraform v${TERRAFORM_VERSION}"
     unzip -p ${TERRAFORM_ZIP} terraform > "${TERRAFORM_DIR}/terraform-${TERRAFORM_VERSION}"
     chmod +x "${TERRAFORM_DIR}/terraform-${TERRAFORM_VERSION}"
