@@ -120,7 +120,7 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                               'DEFAULT_LANGUAGE = ' + Coalesce(QuoteName(@language), 'NONE')
                 END
             END
-          IF objectproperty(object_id('String_Split'), 'isProcedure') IS NULL
+          IF exists (select compatibility_level FROM sys.databases where name = db_name() and compatibility_level < 130)
           BEGIN
               DECLARE @sql NVARCHAR(MAX);
               SET @sql = N'Create FUNCTION [dbo].[String_Split]
@@ -191,7 +191,7 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
             BEGIN
               SET @stmt = @stmt + ', DEFAULT_LANGUAGE = ' + Coalesce(QuoteName(@language), 'NONE')
             END
-          IF objectproperty(object_id('String_Split'), 'isProcedure') IS NULL
+          IF exists (select compatibility_level FROM sys.databases where name = db_name() and compatibility_level < 130)
           BEGIN
               DECLARE @sql NVARCHAR(MAX);
               SET @sql = N'Create FUNCTION [dbo].[String_Split]
