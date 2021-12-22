@@ -19,7 +19,7 @@ resource "mssql_user" "example" {
 }
 ```
 
-> Note that in order to create an external user referencing an Azure AD entity (user, application), the Azure SQL Server needs to be a member of an Azure AD group assigned the Azure AD role `Dictionary Reader`. If it is not possible to give the Azure SQL Server this role (through the group), you can use the `object id` of the Azure AD entity instead.
+> Note that in order to create an external user referencing an Azure AD entity (user, application), the Azure SQL Server needs to be a member of an Azure AD group assigned the Azure AD role `Directory Readers`. If it is not possible to give the Azure SQL Server this role (through the group), you can use the `object id` of the Azure AD entity instead.
 
 ## Argument Reference
 
