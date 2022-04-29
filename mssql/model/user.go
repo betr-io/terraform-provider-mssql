@@ -6,6 +6,7 @@ type User struct {
   ObjectId        string
   LoginName       string
   Password        string
+  SIDStr          string
   AuthType        string
   DefaultSchema   string
   DefaultLanguage string

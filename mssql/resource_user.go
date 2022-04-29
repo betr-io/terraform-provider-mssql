@@ -53,6 +53,10 @@ func resourceUser() *schema.Resource {
         Optional: true,
         ForceNew: true,
       },
+      sidStrProp: {
+        Type:     schema.TypeString,
+        Computed: true,
+      },
       authenticationTypeProp: {
         Type:     schema.TypeString,
         Computed: true,
@@ -169,6 +173,9 @@ func resourceUserRead(ctx context.Context, data *schema.ResourceData, meta inter
     data.SetId("")
   } else {
     if err = data.Set(loginNameProp, user.LoginName); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(sidStrProp, user.SIDStr); err != nil {
       return diag.FromErr(err)
     }
     if err = data.Set(authenticationTypeProp, user.AuthType); err != nil {

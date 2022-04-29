@@ -18,7 +18,7 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
                           '  SELECT member_principal_id, drm.role_principal_id FROM [sys].[database_role_members] drm' +
                           '    INNER JOIN CTE_Roles cr ON drm.member_principal_id = cr.role_principal_id' +
                           ') ' +
-                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, '''', COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
+                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(1000), p.sid, 1) AS sidStr, '''', COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
                           'FROM [sys].[database_principals] p' +
                           '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
                           'WHERE p.name = ' + QuoteName(@username, '''') + ' ' +
@@ -33,7 +33,7 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
                           '  SELECT member_principal_id, drm.role_principal_id FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm' +
                           '    INNER JOIN CTE_Roles cr ON drm.member_principal_id = cr.role_principal_id' +
                           ') ' +
-                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, COALESCE(sl.name, ''''), COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
+                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(1000), p.sid, 1) AS sidStr, COALESCE(sl.name, ''''), COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
                           'FROM ' + QuoteName(@database) + '.[sys].[database_principals] p' +
                           '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
                           '  LEFT JOIN [master].[sys].[sql_logins] sl ON p.sid = sl.sid ' +
@@ -50,7 +50,7 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
     setDatabase(&database).
     QueryRowContext(ctx, cmd,
       func(r *sql.Row) error {
-        return r.Scan(&user.PrincipalID, &user.Username, &user.AuthType, &user.DefaultSchema, &user.DefaultLanguage, &sid, &user.LoginName, &roles)
+        return r.Scan(&user.PrincipalID, &user.Username, &user.AuthType, &user.DefaultSchema, &user.DefaultLanguage, &sid, &user.SIDStr, &user.LoginName, &roles)
       },
       sql.Named("database", database),
       sql.Named("username", username),
