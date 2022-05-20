@@ -6,7 +6,7 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
   "strings"
-  "terraform-provider-mssql/mssql/model"
+  "github.com/betr-io/terraform-provider-mssql/mssql/model"
 )
 
 const loginNameProp = "login_name"

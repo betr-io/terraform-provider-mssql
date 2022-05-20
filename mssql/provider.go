@@ -9,8 +9,8 @@ import (
   "github.com/rs/zerolog/log"
   "io"
   "os"
-  "terraform-provider-mssql/mssql/model"
-  "terraform-provider-mssql/sql"
+  "github.com/betr-io/terraform-provider-mssql/mssql/model"
+  "github.com/betr-io/terraform-provider-mssql/sql"
   "time"
 )
 

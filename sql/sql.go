@@ -13,7 +13,7 @@ import (
   "log"
   "net/url"
   "strings"
-  "terraform-provider-mssql/mssql/model"
+  "github.com/betr-io/terraform-provider-mssql/mssql/model"
   "time"
 )
 
