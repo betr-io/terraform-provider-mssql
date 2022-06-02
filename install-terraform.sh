@@ -94,7 +94,7 @@ fi
 
 if [[ $LIST == 1 || ${#} == 0 ]]; then
     echo -e "\nInstalled terraform versions:\n"
-    for f in $(ls ${TERRAFORM_DIR}/terraform-* | sort -r); do
+    for f in $(ls ${TERRAFORM_DIR} | grep 'terraform-' | sort -r); do
         if [ $(readlink "${TERRAFORM_DIR}/terraform") == $(basename "$f") ]; then CUR='*'; else CUR=' '; fi
         echo "    $CUR $(echo $f | cut -d- -f 2)"
     done

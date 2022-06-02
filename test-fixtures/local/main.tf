@@ -25,13 +25,13 @@ resource "docker_container" "mssql" {
 #
 # Writes information necessary to log in to the SQL Server to file. This file is used by the Makefile when running acceptance tests.
 #
-resource "local_file" "local_env" {
+resource "local_sensitive_file" "local_env" {
   filename             = "${path.root}/../../.local.env"
   directory_permission = "0755"
   file_permission      = "0600"
-  sensitive_content    = <<-EOT
-                         TF_ACC_LOCAL=1
-                         MSSQL_USERNAME='${local.local_username}'
-                         MSSQL_PASSWORD='${local.local_password}'
+  content              = <<-EOT
+                         export TF_ACC_LOCAL=1
+                         export MSSQL_USERNAME='${local.local_username}'
+                         export MSSQL_PASSWORD='${local.local_password}'
                          EOT
 }

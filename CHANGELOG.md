@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Upgraded to go version 1.18
+- Upgraded dependencies.
+- Upgraded dependencies in test fixtures.
+
 ## [0.2.4] - 2021-11-15
 
 Thanks to [Richard Lavey](https://github.com/rlaveycal) ([PR #24](https://github.com/betr-io/terraform-provider-mssql/pull/24)).

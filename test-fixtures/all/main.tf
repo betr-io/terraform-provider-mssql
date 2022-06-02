@@ -37,22 +37,6 @@ locals {
   prefix = "${var.prefix}-${substr(random_string.random.result, 0, 4)}"
 }
 
-resource "random_password" "sa" {
-  length  = 32
-  special = true
-  keepers = {
-    name = "${local.prefix}-sa"
-  }
-}
-
-resource "random_password" "user" {
-  length  = 32
-  special = true
-  keepers = {
-    name = "${local.prefix}-user"
-  }
-}
-
 # An Azure AD group assigned the role 'Directory Readers'. The Azure SQL Server needs to be assigned to this group to enable external logins.
 data "azuread_group" "sql_servers" {
   display_name = var.sql_servers_group
@@ -60,7 +44,7 @@ data "azuread_group" "sql_servers" {
 
 # An Azure AD service principal used as Azure Administrator for the Azure SQL Server resource
 resource "azuread_application" "sa" {
-  display_name = random_password.sa.keepers.name
+  display_name = "${local.prefix}-sa"
   web {
     homepage_url = "https://test.example.com"
   }
@@ -72,13 +56,11 @@ resource "azuread_service_principal" "sa" {
 
 resource "azuread_service_principal_password" "sa" {
   service_principal_id = azuread_service_principal.sa.id
-  value                = random_password.sa.result
-  end_date_relative    = "360h"
 }
 
 # An Azure AD service principal used to test creating an external login to the Azure SQL server resource
 resource "azuread_application" "user" {
-  display_name = random_password.user.keepers.name
+  display_name = "${local.prefix}-user"
   web {
     homepage_url = "https://test.example.com"
   }
@@ -90,8 +72,6 @@ resource "azuread_service_principal" "user" {
 
 resource "azuread_service_principal_password" "user" {
   service_principal_id = azuread_service_principal.user.id
-  value                = random_password.user.result
-  end_date_relative    = "360h"
 }
 
 # Temporary resource group
@@ -108,7 +88,7 @@ resource "azurerm_mssql_server" "sql_server" {
 
   version                      = "12.0"
   administrator_login          = "SuperAdministrator"
-  administrator_login_password = random_password.sa.result
+  administrator_login_password = azuread_service_principal_password.sa.value
 
   azuread_administrator {
     tenant_id      = var.tenant_id
@@ -126,13 +106,12 @@ resource "azuread_group_member" "sql" {
   member_object_id = azurerm_mssql_server.sql_server.identity[0].principal_id
 }
 
-resource "azurerm_sql_firewall_rule" "sql_server_fw_rule" {
-  count               = length(var.local_ip_addresses)
-  name                = "AllowIP ${count.index}"
-  resource_group_name = azurerm_mssql_server.sql_server.resource_group_name
-  server_name         = azurerm_mssql_server.sql_server.name
-  start_ip_address    = var.local_ip_addresses[count.index]
-  end_ip_address      = var.local_ip_addresses[count.index]
+resource "azurerm_mssql_firewall_rule" "sql_server_fw_rule" {
+  count            = length(var.local_ip_addresses)
+  name             = "AllowIP ${count.index}"
+  server_id        = azurerm_mssql_server.sql_server.id
+  start_ip_address = var.local_ip_addresses[count.index]
+  end_ip_address   = var.local_ip_addresses[count.index]
 }
 
 # The Azure SQL Database used in tests
@@ -146,22 +125,22 @@ resource "azurerm_mssql_database" "db" {
 #
 # Writes information necessary to log in to the SQL Server to file. This file is used by the Makefile when running acceptance tests.
 #
-resource "local_file" "local_env" {
+resource "local_sensitive_file" "local_env" {
   filename             = "${path.root}/../../.local.env"
   directory_permission = "0755"
   file_permission      = "0600"
-  sensitive_content    = <<-EOT
-                         TF_ACC=1
-                         MSSQL_USERNAME='${local.local_username}'
-                         MSSQL_PASSWORD='${local.local_password}'
-                         MSSQL_TENANT_ID='${var.tenant_id}'
-                         MSSQL_CLIENT_ID='${azuread_service_principal.sa.application_id}'
-                         MSSQL_CLIENT_SECRET='${azuread_service_principal_password.sa.value}'
-                         TF_ACC_SQL_SERVER='${azurerm_mssql_server.sql_server.fully_qualified_domain_name}'
-                         TF_ACC_AZURE_MSSQL_USERNAME='${azurerm_mssql_server.sql_server.administrator_login}'
-                         TF_ACC_AZURE_MSSQL_PASSWORD='${azurerm_mssql_server.sql_server.administrator_login_password}'
-                         TF_ACC_AZURE_USER_CLIENT_ID='${azuread_service_principal.user.application_id}'
-                         TF_ACC_AZURE_USER_CLIENT_USER='${azuread_service_principal.user.display_name}'
-                         TF_ACC_AZURE_USER_CLIENT_SECRET='${azuread_service_principal_password.user.value}'
+  content              = <<-EOT
+                         export TF_ACC=1
+                         export MSSQL_USERNAME='${local.local_username}'
+                         export MSSQL_PASSWORD='${local.local_password}'
+                         export MSSQL_TENANT_ID='${var.tenant_id}'
+                         export MSSQL_CLIENT_ID='${azuread_service_principal.sa.application_id}'
+                         export MSSQL_CLIENT_SECRET='${azuread_service_principal_password.sa.value}'
+                         export TF_ACC_SQL_SERVER='${azurerm_mssql_server.sql_server.fully_qualified_domain_name}'
+                         export TF_ACC_AZURE_MSSQL_USERNAME='${azurerm_mssql_server.sql_server.administrator_login}'
+                         export TF_ACC_AZURE_MSSQL_PASSWORD='${azurerm_mssql_server.sql_server.administrator_login_password}'
+                         export TF_ACC_AZURE_USER_CLIENT_ID='${azuread_service_principal.user.application_id}'
+                         export TF_ACC_AZURE_USER_CLIENT_USER='${azuread_service_principal.user.display_name}'
+                         export TF_ACC_AZURE_USER_CLIENT_SECRET='${azuread_service_principal_password.user.value}'
                          EOT
 }
