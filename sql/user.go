@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
-	"terraform-provider-mssql/mssql/model"
+	"github.com/betr-io/terraform-provider-mssql/mssql/model"
 )
 
 func (c *Connector) GetUser(ctx context.Context, database, username string) (*model.User, error) {
@@ -134,7 +134,7 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                     */
                     RETURNS TABLE AS RETURN
                     (
-                        SELECT 
+                        SELECT
                           --ROW_NUMBER ( ) over(order by (select 0))                            AS id     --  intuitive, but not correect
                             Split.a.value(''let $n := . return count(../*[. << $n]) + 1'', ''int'') AS id
                           , Split.a.value(''.'', ''NVARCHAR(MAX)'')                                 AS value
@@ -205,7 +205,7 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
                     */
                     RETURNS TABLE AS RETURN
                     (
-                        SELECT 
+                        SELECT
                           --ROW_NUMBER ( ) over(order by (select 0))                            AS id     --  intuitive, but not correect
                             Split.a.value(''let $n := . return count(../*[. << $n]) + 1'', ''int'') AS id
                           , Split.a.value(''.'', ''NVARCHAR(MAX)'')                                 AS value

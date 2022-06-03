@@ -4,7 +4,7 @@ import (
   "fmt"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/rs/zerolog"
-  "terraform-provider-mssql/mssql/model"
+  "github.com/betr-io/terraform-provider-mssql/mssql/model"
 )
 
 func getLoginID(data *schema.ResourceData) string {

@@ -3,7 +3,7 @@ package sql
 import (
   "context"
   "database/sql"
-  "terraform-provider-mssql/mssql/model"
+  "github.com/betr-io/terraform-provider-mssql/mssql/model"
 )
 
 func (c *Connector) GetLogin(ctx context.Context, name string) (*model.Login, error) {
