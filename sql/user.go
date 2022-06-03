@@ -161,9 +161,12 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                       'CLOSE role_cur;' +
                       'DEALLOCATE role_cur;'
           EXEC (@stmt)`
-  _, err := c.GetLogin(ctx, user.LoginName)
-  if err != nil {
-    return err
+  if user.AuthType != "EXTERNAL" {
+    // External users do not have a server login
+    _, err := c.GetLogin(ctx, user.LoginName)
+    if err != nil {
+      return err
+    }
   }
   return c.
     setDatabase(&database).
