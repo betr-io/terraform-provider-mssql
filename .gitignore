@@ -51,3 +51,4 @@ terraform
 .local.env
 terraform-provider-mssql
 terraform-provider-mssql.log
+/.devcontainer/
