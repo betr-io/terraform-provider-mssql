@@ -62,6 +62,7 @@ The `azure_login` block supports the following arguments:
 The following attributes are exported:
 
 * `principal_id` - The principal id of this database user.
+* `sid` - The security identifier (SID) of this database user in String format.
 * `authentication_type` - One of `DATABASE`, `INSTANCE`, or `EXTERNAL`.
 
 ## Import
