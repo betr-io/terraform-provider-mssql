@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2022-06-03
+
 ### Added
 
 - Add SID as output attribute to the `mssql_user` resource. [PR #36](https://github.com/betr-io/terraform-provider-mssql/pull/36). Closes [#35](https://github.com/betr-io/terraform-provider-mssql/issues/35). Thanks to [rjbell](https://github.com/rjbell) for the PR.
@@ -14,11 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Treat `password` attribute of `mssql_user` as sensitive. Closes [#37](https://github.com/betr-io/terraform-provider-mssql/issues/37).
-- Only get sql logins if user is not external. [PR #33](https://github.com/betr-io/terraform-provider-mssql/pull/33). Closes [#32](https://github.com/betr-io/terraform-provider-mssql/issues/32). Thanks to [Alexander Guth](https://github.com/alxy) for the PR.
 - Fully qualify package name with Github repository. [PR #38](https://github.com/betr-io/terraform-provider-mssql/pull/38). Thanks to [Ewan Noble](https://github.com/EwanNoble) for the PR.
 - Upgraded to go version 1.18
 - Upgraded dependencies.
 - Upgraded dependencies in test fixtures.
+
+### Fixed
+
+- Only get sql logins if user is not external. [PR #33](https://github.com/betr-io/terraform-provider-mssql/pull/33). Closes [#32](https://github.com/betr-io/terraform-provider-mssql/issues/32). Thanks to [Alexander Guth](https://github.com/alxy) for the PR.
 
 ## [0.2.4] - 2021-11-15
 
@@ -80,7 +85,8 @@ Initial release.
 - Resource `mssql_login` to manipulate logins to a SQL Server.
 - Resource `mssql_user` to manipulate users in a SQL Server database.
 
-[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.1...v0.2.2

@@ -1,5 +1,7 @@
 # Terraform Provider `mssql`
 
+> :warning: NOTE: Because the provider as it stands covers all of our current use cases, we will not be dedicating much time and effort to supporting it. We will, however, gladly accept pull requests. We will try to review and release those in a timely manner. Pull requests with included tests and documentation will be prioritized.
+
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) 0.13.x

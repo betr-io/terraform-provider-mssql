@@ -5,7 +5,7 @@ HOSTNAME=betr.io
 NAMESPACE=betr
 NAME=mssql
 BINARY=terraform-provider-${NAME}
-VERSION=0.2.4
+VERSION=0.2.5
 OS_ARCH=linux_amd64
 TERRAFORM=terraform
 
