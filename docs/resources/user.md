@@ -4,6 +4,8 @@ The `mssql_user` resource creates and manages a user on a SQL Server database.
 
 ## Example Usage
 
+### Basic usage
+
 ```hcl
 resource "mssql_user" "example" {
   server {
@@ -16,6 +18,36 @@ resource "mssql_user" "example" {
   }
   username = "user@example.com"
   roles    = [ "db_owner" ]
+}
+```
+
+### Using managed identities
+
+```hcl
+resource "azurerm_resource_group" "example" {
+  name     = "example-resources"
+  location = "West Europe"
+}
+
+resource "azurerm_user_assigned_identity" "example" {
+  resource_group_name = azurerm_resource_group.example.name
+  location            = azurerm_resource_group.example.location
+
+  name = "my-sql-identity"
+}
+
+resource "mssql_user" "example" {
+  server {
+    host = "example-sql-server.database.windows.net"
+    azure_login {
+    }
+  }
+
+  database  = "my-database"
+  username  = azurerm_user_assigned_identity.example.name
+  object_id = azurerm_user_assigned_identity.example.client_id
+
+  roles     = ["db_datareader"]
 }
 ```
 
