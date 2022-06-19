@@ -1,5 +1,6 @@
 SHELL := /bin/bash
 
+OPERATING_SYSTEM=Windows
 TEST?=$$(go list ./... | grep -v 'vendor')
 HOSTNAME=betr.io
 NAMESPACE=betr
@@ -33,13 +34,13 @@ testacc-local:
 	if [ -f .local.env ]; then source .local.env; fi && TF_ACC_LOCAL=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
 docker-start:
-	cd test-fixtures/local && ${TERRAFORM} apply -auto-approve
+	cd test-fixtures/local && ${TERRAFORM} init && ${TERRAFORM} apply -auto-approve -var="operating_system=${OPERATING_SYSTEM}"
 
 docker-stop:
-	cd test-fixtures/local && ${TERRAFORM} destroy -auto-approve
+	cd test-fixtures/local && ${TERRAFORM} destroy -auto-approve -var="operating_system=${OPERATING_SYSTEM}"
 
 azure-create:
-	cd test-fixtures/all && ${TERRAFORM} apply -auto-approve
+	cd test-fixtures/all && ${TERRAFORM} init && ${TERRAFORM} apply -auto-approve -var="operating_system=${OPERATING_SYSTEM}"
 
 azure-destroy:
-	cd test-fixtures/all && ${TERRAFORM} destroy -auto-approve
+	cd test-fixtures/all && ${TERRAFORM} destroy -auto-approve -var="operating_system=${OPERATING_SYSTEM}"
