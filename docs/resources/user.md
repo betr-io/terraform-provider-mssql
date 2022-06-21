@@ -42,6 +42,8 @@ The `server` block supports the following arguments:
 * `port` - (Optional) The port of the SQL Server. Defaults to `1433`. Changing this forces a new resource to be created.
 * `login` - (Optional) SQL Server login for managing the database resources. The attributes supported in the `login` block is detailed below.
 * `azure_login` - (Optional) Azure AD login for managing the database resources. The attributes supported in the `azure_login` block is detailed below.
+* `azuread_default_chain_auth` - (Optional) Use a chain of strategies for authenticating when managing the database resources. This auth strategy is very similar to how the Azure CLI authenticates. For more information, see [DefaultAzureCredential](https://github.com/Azure/azure-sdk-for-go/wiki/Set-up-Your-Environment-for-Authentication#configure-defaultazurecredential). This block has no attributes.
+* `azuread_managed_identity_auth` - (Optional) Use a managed identity for authenticating when managing the database resources. This is mainly useful for specifying a user-assigned managed identity. The attributes supported in the `azuread_managed_identity_auth` block is detailed below.
 
 The `login` block supports the following arguments:
 
@@ -55,7 +57,11 @@ The `azure_login` block supports the following arguments:
 * `client_id` - (Required) The client ID of the principal used to login to the SQL Server. Can also be sourced from the `MSSQL_CLIENT_ID` environment variable.
 * `client_secret` - (Required) The client secret of the principal used to login to the SQL Server. Can also be sourced from the `MSSQL_CLIENT_SECRET` environment variable.
 
--> Only one of `login` or `azure_login` can be specified. If neither is specified and both are sourced from environment variables, `azure_login` will be preferred.
+The `azuread_managed_identity_auth` block supports the following arguments:
+
+* `user_id` - (Optional) Id of a user-assigned managed identity to assume. Omitting this property instructs the provider to assume a system-assigned managed identity.
+
+-> Only one of `login`, `azure_login`, `azuread_default_chain_auth` and `azuread_managed_identity_auth` can be specified.
 
 ## Attribute Reference
 
