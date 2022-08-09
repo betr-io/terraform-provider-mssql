@@ -5,6 +5,9 @@
 *.tfstate
 *.tfstate.*
 
+# Terraform lock files
+*.lock.hcl
+
 # Crash log files
 crash.log
 
@@ -51,4 +54,5 @@ terraform
 .local.env
 terraform-provider-mssql
 terraform-provider-mssql.log
+terraform-provider-mssql.exe
 /.devcontainer/
