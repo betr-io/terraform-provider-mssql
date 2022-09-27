@@ -35,7 +35,6 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
                           ') ' +
                           'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(1000), p.sid, 1) AS sidStr, COALESCE(sl.name, ''''), COALESCE(STUFF((SELECT '' + USER_NAME(r.role_principal_id) FROM CTE_Roles r WHERE r.principal_id = p.principal_id FOR XML PATH ('')), 1, 0, ''), '''') ' +
                           'FROM ' + QuoteName(@database) + '.[sys].[database_principals] p' +
-                          '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
                           '  LEFT JOIN [master].[sys].[sql_logins] sl ON p.sid = sl.sid ' +
                           'WHERE p.name = ' + QuoteName(@username, '''') + ' ' +
                           'GROUP BY p.principal_id, p.name, p.authentication_type_desc, p.default_schema_name, p.default_language_name, p.sid, sl.name'
