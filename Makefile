@@ -37,10 +37,10 @@ docker-start:
 	cd test-fixtures/local && ${TERRAFORM} init && ${TERRAFORM} apply -auto-approve -var="operating_system=${OPERATING_SYSTEM}"
 
 docker-stop:
-	cd test-fixtures/local && ${TERRAFORM} destroy -auto-approve -var="operating_system=${OPERATING_SYSTEM}"
+	cd test-fixtures/local && ${TERRAFORM} apply -destroy -auto-approve -var="operating_system=${OPERATING_SYSTEM}"
 
 azure-create:
-	cd test-fixtures/all && ${TERRAFORM} init && ${TERRAFORM} apply -auto-approve -var="operating_system=${OPERATING_SYSTEM}"
+	cd test-fixtures/all && ${TERRAFORM} init && ${TERRAFORM} apply -auto-approve
 
 azure-destroy:
-	cd test-fixtures/all && ${TERRAFORM} destroy -auto-approve -var="operating_system=${OPERATING_SYSTEM}"
+	cd test-fixtures/all && ${TERRAFORM} apply -destroy -auto-approve
