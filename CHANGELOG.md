@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2022-11-25
+
+### Added
+
+- Support two of the auth forms available through the new [fedauth](https://github.com/denisenkom/go-mssqldb#azure-active-directory-authentication): `ActiveDirectoryDefault` and `ActiveDirectoryManagedIdentity` (because user-assigned identity) as these are the most useful variants. [PR #42](https://github.com/betr-io/terraform-provider-mssql/pull/42). Closes [#30](https://github.com/betr-io/terraform-provider-mssql/issues/30). Thanks to [Bittrance](https://github.com/bittrance) for the PR.
+- Improve docs on managed identities. [PR #39](https://github.com/betr-io/terraform-provider-mssql/pull/36). Thanks to [Alexander Guth](https://github.com/alxy) for the PR.
+
 ## [0.2.5] - 2022-06-03
 
 ### Added
@@ -85,7 +92,8 @@ Initial release.
 - Resource `mssql_login` to manipulate logins to a SQL Server.
 - Resource `mssql_user` to manipulate users in a SQL Server database.
 
-[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.2...v0.2.3
