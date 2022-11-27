@@ -9,7 +9,7 @@ terraform {
   required_providers {
     mssql = {
       source = "betr-io/mssql"
-      version = "0.1.0"
+      version = "0.3.0"
     }
   }
 }

@@ -4,17 +4,17 @@
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) 0.13.x
-- [Go](https://golang.org/doc/install) 1.18 (to build the provider plugin)
+- [Terraform](https://www.terraform.io/downloads.html) 1.1.5+
+- [Go](https://golang.org/doc/install) 1.19+ (to build the provider plugin)
 
 ## Usage
 
 ```hcl
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 1.1.5"
   required_providers {
     mssql = {
-      versions = "~> 0.2.2"
+      versions = "~> 0.3.0"
       source = "betr.io/betr/mssql"
     }
   }
@@ -46,7 +46,7 @@ make install
 
 ## Developing the provider
 
-If you wish to work on the provider, you'll first need [Go](https://www.golang.org) installed on your machine (version 1.18+).
+If you wish to work on the provider, you'll first need [Go](https://www.golang.org) installed on your machine (version 1.19+).
 
 To compile the provider, run `make build`. This will build the provider.
 

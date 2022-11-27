@@ -1,5 +1,5 @@
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 1.1.5"
   required_providers {
     docker = {
       source  = "terraform-providers/docker"
@@ -7,7 +7,7 @@ terraform {
     }
     mssql = {
       source  = "betr-io/mssql"
-      version = "~> 0.1.0"
+      version = "~> 0.3.0"
     }
     random = {
       source  = "hashicorp/random"

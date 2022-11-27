@@ -1,5 +1,5 @@
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 1.1.5"
   required_providers {
     azuread = {
       source  = "hashicorp/azuread"
@@ -11,7 +11,7 @@ terraform {
     }
     mssql = {
       source  = "betr.io/betr/mssql"
-      version = "0.2.6"
+      version = "0.3.0"
     }
     random = {
       source  = "hashicorp/random"
