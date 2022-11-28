@@ -15,14 +15,13 @@ import (
 	"github.com/betr-io/terraform-provider-mssql/sql"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
+	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var runLocalAccTests bool
 var testAccProvider *schema.Provider
-
-// var testAccProviders map[string]func() (*schema.Provider, error)
 
 var protoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
 	"mssql": func() (tfprotov6.ProviderServer, error) {
@@ -31,23 +30,26 @@ var protoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, erro
 			ctx,
 			New("dev", "none")().GRPCProvider,
 		)
-
 		if err != nil {
 			return nil, err
 		}
 
-		return upgradedSdkProvider, nil
+		providers := []func() tfprotov6.ProviderServer{
+			func() tfprotov6.ProviderServer { return upgradedSdkProvider },
+		}
+
+		muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)
+		if err != nil {
+			return nil, err
+		}
+
+		return muxServer.ProviderServer(), nil
 	},
 }
 
 func init() {
 	_, runLocalAccTests = os.LookupEnv("TF_ACC_LOCAL")
 	testAccProvider = Provider(sql.GetFactory())
-	// testAccProviders = map[string]func() (*schema.Provider, error){
-	// 	"mssql": func() (*schema.Provider, error) {
-	// 		return testAccProvider, nil
-	// 	},
-	// }
 }
 
 func TestProvider(t *testing.T) {
