@@ -2,8 +2,8 @@ SHELL := /bin/bash
 
 OPERATING_SYSTEM=Linux
 TEST?=$$(go list ./... | grep -v 'vendor')
-HOSTNAME=betr.io
-NAMESPACE=betr
+HOSTNAME=registry.terraform.io
+NAMESPACE=betr-io
 NAME=mssql
 BINARY=terraform-provider-${NAME}
 VERSION=0.3.0
@@ -21,7 +21,7 @@ release:
 
 install: build
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
-	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
+	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}/${BINARY}_v${VERSION}
 
 test:
 	go test -i $(TEST) || exit 1

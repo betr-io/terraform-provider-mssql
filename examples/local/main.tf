@@ -2,8 +2,8 @@ terraform {
   required_version = "~> 1.1.5"
   required_providers {
     docker = {
-      source  = "terraform-providers/docker"
-      version = "~> 2.7.2"
+      source  = "kreuzwerker/docker"
+      version = "~> 2.23.1"
     }
     mssql = {
       source  = "betr-io/mssql"
@@ -92,6 +92,7 @@ resource "mssql_user" "example" {
 }
 
 output "login" {
+  sensitive = true
   value = {
     login_name = mssql_login.example.login_name,
     password   = mssql_login.example.password

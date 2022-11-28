@@ -5,6 +5,8 @@ import (
 	"log"
 
 	"github.com/betr-io/terraform-provider-mssql/mssql"
+	"github.com/betr-io/terraform-provider-mssql/provider"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6/tf6server"
 	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
@@ -29,6 +31,7 @@ func main() {
 
 	providers := []func() tfprotov6.ProviderServer{
 		func() tfprotov6.ProviderServer { return upgradedSdkProvider },
+		func() tfprotov6.ProviderServer { return providerserver.NewProtocol6(provider.New(version, commit))() },
 	}
 
 	muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)
