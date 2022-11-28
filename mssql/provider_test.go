@@ -16,40 +16,63 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
 	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-var runLocalAccTests bool
-var testAccProvider *schema.Provider
+const verifyNewProvider = true
 
-var protoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"mssql": func() (tfprotov6.ProviderServer, error) {
-		ctx := context.Background()
-		upgradedSdkProvider, err := tf5to6server.UpgradeServer(
-			ctx,
-			New("dev", "none")().GRPCProvider,
-		)
-		if err != nil {
-			return nil, err
-		}
+var (
+	runLocalAccTests bool
+	testAccProvider  *schema.Provider
 
-		providers := []func() tfprotov6.ProviderServer{
-			func() tfprotov6.ProviderServer { return upgradedSdkProvider },
-		}
+	verifyNewProviderExternalProviders        map[string]resource.ExternalProvider
+	verifyNewProviderProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
+	regularProtoV6ProviderFactories           map[string]func() (tfprotov6.ProviderServer, error)
 
-		muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)
-		if err != nil {
-			return nil, err
-		}
-
-		return muxServer.ProviderServer(), nil
-	},
-}
+	protoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
+)
 
 func init() {
 	_, runLocalAccTests = os.LookupEnv("TF_ACC_LOCAL")
 	testAccProvider = Provider(sql.GetFactory())
+
+	protoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+		"mssql": func() (tfprotov6.ProviderServer, error) {
+			ctx := context.Background()
+			upgradedSdkProvider, err := tf5to6server.UpgradeServer(
+				ctx,
+				New("dev", "none")().GRPCProvider,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			providers := []func() tfprotov6.ProviderServer{
+				func() tfprotov6.ProviderServer { return upgradedSdkProvider },
+			}
+
+			muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)
+			if err != nil {
+				return nil, err
+			}
+
+			return muxServer.ProviderServer(), nil
+		},
+	}
+
+	if verifyNewProvider {
+		verifyNewProviderExternalProviders = map[string]resource.ExternalProvider{
+			"mssql": {
+				VersionConstraint: "0.2.6",
+				Source:            "registry.terraform.io/betr-io/mssql",
+			},
+		}
+		verifyNewProviderProtoV6ProviderFactories = protoV6ProviderFactories
+	} else {
+		regularProtoV6ProviderFactories = protoV6ProviderFactories
+	}
 }
 
 func TestProvider(t *testing.T) {

@@ -13,11 +13,12 @@ func TestAccLogin_Local_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		IsUnitTest:               runLocalAccTests,
-		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		ProtoV6ProviderFactories: regularProtoV6ProviderFactories,
 		CheckDestroy:             func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckLogin(t, "basic", false, map[string]interface{}{"login_name": "login_basic", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "basic", false, map[string]interface{}{"login_name": "login_basic", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLoginExists("mssql_login.basic"),
 					testAccCheckLoginWorks("mssql_login.basic"),
@@ -35,6 +36,11 @@ func TestAccLogin_Local_Basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("mssql_login.basic", "principal_id"),
 				),
 			},
+			{
+				ProtoV6ProviderFactories: verifyNewProviderProtoV6ProviderFactories,
+				Config:                   testAccCheckLogin(t, "basic", false, map[string]interface{}{"login_name": "login_basic", "password": "valueIsH8kd$¡"}),
+				PlanOnly:                 true,
+			},
 		},
 	})
 }
@@ -42,11 +48,12 @@ func TestAccLogin_Local_Basic(t *testing.T) {
 func TestAccLogin_Azure_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		ProtoV6ProviderFactories: regularProtoV6ProviderFactories,
 		CheckDestroy:             func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckLogin(t, "basic", true, map[string]interface{}{"login_name": "login_basic", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "basic", true, map[string]interface{}{"login_name": "login_basic", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLoginExists("mssql_login.basic"),
 					resource.TestCheckResourceAttr("mssql_login.basic", "login_name", "login_basic"),
@@ -64,6 +71,11 @@ func TestAccLogin_Azure_Basic(t *testing.T) {
 					resource.TestCheckResourceAttrSet("mssql_login.basic", "principal_id"),
 				),
 			},
+			{
+				ProtoV6ProviderFactories: verifyNewProviderProtoV6ProviderFactories,
+				Config:                   testAccCheckLogin(t, "basic", true, map[string]interface{}{"login_name": "login_basic", "password": "valueIsH8kd$¡"}),
+				PlanOnly:                 true,
+			},
 		},
 	})
 }
@@ -72,11 +84,12 @@ func TestAccLogin_Local_UpdateLoginName(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		IsUnitTest:               runLocalAccTests,
-		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		ProtoV6ProviderFactories: regularProtoV6ProviderFactories,
 		CheckDestroy:             func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update_pre", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update_pre", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "login_name", "login_update_pre"),
 					testAccCheckLoginExists("mssql_login.test_update"),
@@ -84,12 +97,18 @@ func TestAccLogin_Local_UpdateLoginName(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update_post", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update_post", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "login_name", "login_update_post"),
 					testAccCheckLoginExists("mssql_login.test_update"),
 					testAccCheckLoginWorks("mssql_login.test_update"),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: verifyNewProviderProtoV6ProviderFactories,
+				Config:                   testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update_post", "password": "valueIsH8kd$¡"}),
+				PlanOnly:                 true,
 			},
 		}})
 }
@@ -98,11 +117,12 @@ func TestAccLogin_Local_UpdatePassword(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		IsUnitTest:               runLocalAccTests,
-		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		ProtoV6ProviderFactories: regularProtoV6ProviderFactories,
 		CheckDestroy:             func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "password", "valueIsH8kd$¡"),
 					testAccCheckLoginExists("mssql_login.test_update"),
@@ -110,12 +130,18 @@ func TestAccLogin_Local_UpdatePassword(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "otherIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "otherIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "password", "otherIsH8kd$¡"),
 					testAccCheckLoginExists("mssql_login.test_update"),
 					testAccCheckLoginWorks("mssql_login.test_update"),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: verifyNewProviderProtoV6ProviderFactories,
+				Config:                   testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "otherIsH8kd$¡"}),
+				PlanOnly:                 true,
 			},
 		}})
 }
@@ -124,11 +150,12 @@ func TestAccLogin_Local_UpdateDefaultDatabase(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		IsUnitTest:               runLocalAccTests,
-		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		ProtoV6ProviderFactories: regularProtoV6ProviderFactories,
 		CheckDestroy:             func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "default_database", "master"),
 					testAccCheckLoginExists("mssql_login.test_update", Check{"default_database", "==", "master"}),
@@ -136,12 +163,18 @@ func TestAccLogin_Local_UpdateDefaultDatabase(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡", "default_database": "tempdb"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡", "default_database": "tempdb"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "default_database", "tempdb"),
 					testAccCheckLoginExists("mssql_login.test_update", Check{"default_database", "==", "tempdb"}),
 					testAccCheckLoginWorks("mssql_login.test_update"),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: verifyNewProviderProtoV6ProviderFactories,
+				Config:                   testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡", "default_database": "tempdb"}),
+				PlanOnly:                 true,
 			},
 		}})
 }
@@ -150,11 +183,12 @@ func TestAccLogin_Local_UpdateDefaultLanguage(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		IsUnitTest:               runLocalAccTests,
-		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		ProtoV6ProviderFactories: regularProtoV6ProviderFactories,
 		CheckDestroy:             func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "default_language", "us_english"),
 					testAccCheckLoginExists("mssql_login.test_update"),
@@ -162,12 +196,18 @@ func TestAccLogin_Local_UpdateDefaultLanguage(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡", "default_language": "russian"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡", "default_language": "russian"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "default_language", "russian"),
 					testAccCheckLoginExists("mssql_login.test_update", Check{"default_language", "==", "russian"}),
 					testAccCheckLoginWorks("mssql_login.test_update"),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: verifyNewProviderProtoV6ProviderFactories,
+				Config:                   testAccCheckLogin(t, "test_update", false, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡", "default_language": "russian"}),
+				PlanOnly:                 true,
 			},
 		}})
 }
@@ -175,22 +215,29 @@ func TestAccLogin_Local_UpdateDefaultLanguage(t *testing.T) {
 func TestAccLogin_Azure_UpdateLoginName(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		ProtoV6ProviderFactories: regularProtoV6ProviderFactories,
 		CheckDestroy:             func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update_pre", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update_pre", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "login_name", "login_update_pre"),
 					testAccCheckLoginExists("mssql_login.test_update"),
 				),
 			},
 			{
-				Config: testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update_post", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update_post", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "login_name", "login_update_post"),
 					testAccCheckLoginExists("mssql_login.test_update"),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: verifyNewProviderProtoV6ProviderFactories,
+				Config:                   testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update_post", "password": "valueIsH8kd$¡"}),
+				PlanOnly:                 true,
 			},
 		}})
 }
@@ -198,22 +245,29 @@ func TestAccLogin_Azure_UpdateLoginName(t *testing.T) {
 func TestAccLogin_Azure_UpdatePassword(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		ProtoV6ProviderFactories: regularProtoV6ProviderFactories,
 		CheckDestroy:             func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update", "password": "valueIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "password", "valueIsH8kd$¡"),
 					testAccCheckLoginExists("mssql_login.test_update"),
 				),
 			},
 			{
-				Config: testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update", "password": "otherIsH8kd$¡"}),
+				ExternalProviders: verifyNewProviderExternalProviders,
+				Config:            testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update", "password": "otherIsH8kd$¡"}),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr("mssql_login.test_update", "password", "otherIsH8kd$¡"),
 					testAccCheckLoginExists("mssql_login.test_update"),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: verifyNewProviderProtoV6ProviderFactories,
+				Config:                   testAccCheckLogin(t, "test_update", true, map[string]interface{}{"login_name": "login_update", "password": "otherIsH8kd$¡"}),
+				PlanOnly:                 true,
 			},
 		}})
 }
