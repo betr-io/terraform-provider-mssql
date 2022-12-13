@@ -3,15 +3,16 @@ package mssql
 import (
   "context"
   "fmt"
+  "io"
+  "os"
+  "time"
+
+  "github.com/betr-io/terraform-provider-mssql/mssql/model"
+  "github.com/betr-io/terraform-provider-mssql/sql"
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/rs/zerolog"
   "github.com/rs/zerolog/log"
-  "io"
-  "os"
-  "github.com/betr-io/terraform-provider-mssql/mssql/model"
-  "github.com/betr-io/terraform-provider-mssql/sql"
-  "time"
 )
 
 type mssqlProvider struct {
@@ -46,6 +47,7 @@ func Provider(factory model.ConnectorFactory) *schema.Provider {
     ResourcesMap: map[string]*schema.Resource{
       "mssql_login": resourceLogin(),
       "mssql_user":  resourceUser(),
+      "mssql_role":  resourceRole(),
     },
     DataSourcesMap: map[string]*schema.Resource{},
     ConfigureContextFunc: func(ctx context.Context, data *schema.ResourceData) (interface{}, diag.Diagnostics) {

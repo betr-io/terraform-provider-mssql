@@ -5,15 +5,15 @@ import (
   "context"
   sql2 "database/sql"
   "fmt"
-  "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-  "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
   "os"
-  "strconv"
-  "github.com/betr-io/terraform-provider-mssql/mssql/model"
-  "github.com/betr-io/terraform-provider-mssql/sql"
   "testing"
   "text/template"
   "time"
+
+  "github.com/betr-io/terraform-provider-mssql/mssql/model"
+  "github.com/betr-io/terraform-provider-mssql/sql"
+  "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+  "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 var runLocalAccTests bool
@@ -61,6 +61,7 @@ type Check struct {
 type TestConnector interface {
   GetLogin(name string) (*model.Login, error)
   GetUser(database, name string) (*model.User, error)
+  GetRole(database, name string) (*model.Role, error)
   GetSystemUser() (string, error)
   GetCurrentUser(database string) (string, string, error)
 }
@@ -158,6 +159,10 @@ func (t testConnector) GetUser(database, name string) (*model.User, error) {
   return t.c.(UserConnector).GetUser(context.Background(), database, name)
 }
 
+func (t testConnector) GetRole(database string, roleName string) (*model.Role, error) {
+  return t.c.(RoleConnector).GetRole(context.Background(), database, roleName)
+}
+
 func (t testConnector) GetSystemUser() (string, error) {
   var user string
   err := t.c.(*sql.Connector).QueryRowContext(context.Background(), "SELECT SYSTEM_USER;", func(row *sql2.Row) error {
@@ -190,7 +195,7 @@ func templateToString(name, text string, data interface{}) (string, error) {
   return doc.String(), nil
 }
 
-func testAccImportStateId(resource string, azure bool) func(state *terraform.State) (string, error) {
+func testResourceTryGetStateId(resource string) func(state *terraform.State) (string, error) {
   return func(state *terraform.State) (string, error) {
     rs, ok := state.RootModule().Resources[resource]
     if !ok {
@@ -199,6 +204,6 @@ func testAccImportStateId(resource string, azure bool) func(state *terraform.Sta
     if rs.Primary.ID == "" {
       return "", fmt.Errorf("no record ID is set")
     }
-    return rs.Primary.ID + "?azure=" + strconv.FormatBool(azure), nil
+    return rs.Primary.ID, nil
   }
 }

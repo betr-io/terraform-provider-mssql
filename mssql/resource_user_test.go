@@ -1,12 +1,12 @@
 package mssql
 
 import (
-	"fmt"
-	"os"
-	"testing"
+  "fmt"
+  "os"
+  "testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+  "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+  "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccUser_Local_Instance(t *testing.T) {
@@ -322,7 +322,7 @@ func TestAccUser_Local_Update_Roles(t *testing.T) {
           resource.TestCheckResourceAttr("mssql_user.update", "roles.#", "2"),
           resource.TestCheckResourceAttr("mssql_user.update", "roles.0", "db_owner"),
           resource.TestCheckResourceAttr("mssql_user.update", "roles.1", "db_datawriter"),
-          testAccCheckUserExists("mssql_user.update", Check{"roles", "==", []string{"db_owner","db_datawriter"}}),
+          testAccCheckUserExists("mssql_user.update", Check{"roles", "==", []string{"db_owner", "db_datawriter"}}),
           testAccCheckDatabaseUserWorks("mssql_user.update", "user_update", "valueIsH8kd$¡"),
         ),
       },
@@ -411,7 +411,7 @@ func TestAccUser_Azure_Update_Roles(t *testing.T) {
           resource.TestCheckResourceAttr("mssql_user.update", "roles.#", "2"),
           resource.TestCheckResourceAttr("mssql_user.update", "roles.0", "db_owner"),
           resource.TestCheckResourceAttr("mssql_user.update", "roles.1", "db_datawriter"),
-          testAccCheckUserExists("mssql_user.update", Check{"roles", "==", []string{"db_owner","db_datawriter"}}),
+          testAccCheckUserExists("mssql_user.update", Check{"roles", "==", []string{"db_owner", "db_datawriter"}}),
           testAccCheckDatabaseUserWorks("mssql_user.update", "user_update", "valueIsH8kd$¡"),
         ),
       },

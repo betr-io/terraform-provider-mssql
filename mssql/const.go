@@ -9,6 +9,7 @@ const (
   passwordProp             = "password"
   sidStrProp               = "sid"
   clientIdProp             = "client_id"
+  roleNameProp             = "role_name"
   authenticationTypeProp   = "authentication_type"
   defaultSchemaProp        = "default_schema"
   defaultSchemaPropDefault = "dbo"
