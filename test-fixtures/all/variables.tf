@@ -24,3 +24,12 @@ variable "local_ip_addresses" {
   description = "The external IP addresses of the machines running the acceptance tests. This is necessary to allow access to the Azure SQL Server resource."
   type        = list(string)
 }
+
+// Fixes the error:
+// Error: Value for undeclared variable
+// A variable named "operating_system" was assigned on the command line, but the root module does not declare a variable of that name. To use this value, add a "variable" block to the configuration. 
+variable "operating_system" {
+  description = "dummy variable"
+  type        = string
+  default     = "dummyvariable"
+}

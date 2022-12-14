@@ -1,13 +1,13 @@
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 1.3.6"
   required_providers {
     azuread = {
       source  = "hashicorp/azuread"
-      version = "~> 1.0"
+      version = "~> 2.22.0"
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 2.99.0"
+      version = "~> 3.8.0"
     }
     mssql = {
       source  = "betr.io/betr/mssql"
@@ -15,11 +15,11 @@ terraform {
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.0.0"
+      version = "~> 3.4.3"
     }
     time = {
       source  = "hashicorp/time"
-      version = "0.6.0"
+      version = "0.9.0"
     }
   }
 }
@@ -133,4 +133,13 @@ resource "mssql_user" "external" {
   }
   database = azurerm_mssql_database.db.name
   username = "someone@foobar.onmicrosoft.com"
+}
+
+resource "mssql_role" "external" {
+  server {
+    host = azurerm_mssql_server.sql_server.fully_qualified_domain_name
+    azuread_default_chain_auth {}
+  }
+  database = azurerm_mssql_database.db.name
+  role_name = "testrole"
 }

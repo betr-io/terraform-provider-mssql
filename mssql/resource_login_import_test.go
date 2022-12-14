@@ -1,9 +1,10 @@
 package mssql
 
 import (
+  "testing"
+
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
   "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-  "testing"
 )
 
 func TestAccLogin_Local_BasicImport(t *testing.T) {
@@ -24,7 +25,7 @@ func TestAccLogin_Local_BasicImport(t *testing.T) {
         ImportState:             true,
         ImportStateVerify:       true,
         ImportStateVerifyIgnore: []string{"password"},
-        ImportStateIdFunc:       testAccImportStateId("mssql_login.test_import", false),
+        ImportStateIdFunc:       testResourceTryGetStateId("mssql_login.test_import"),
       },
     },
   })

@@ -1,5 +1,5 @@
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 1.3.6"
   required_providers {
     azuread = {
       source  = "hashicorp/azuread"
@@ -11,15 +11,15 @@ terraform {
     }
     mssql = {
       source  = "betr-io/mssql"
-      version = "0.1.0"
+      version = "0.2.6"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.0.0"
+      version = "~> 3.4.3"
     }
     time = {
       source  = "hashicorp/time"
-      version = "0.6.0"
+      version = "0.9.0"
     }
   }
 }
@@ -223,6 +223,18 @@ resource "mssql_user" "server" {
   database   = azurerm_mssql_database.db.name
   username   = random_password.server.keepers.username
   login_name = mssql_login.server.login_name
+}
+
+resource "mssql_role" "server" {
+  server {
+    host = azurerm_mssql_server.sql_server.fully_qualified_domain_name
+    login {
+      username = azurerm_mssql_server.sql_server.administrator_login
+      password = azurerm_mssql_server.sql_server.administrator_login_password
+    }
+  }
+  database = azurerm_mssql_database.db.name
+  role_name = "testrole"
 }
 
 output "instance" {

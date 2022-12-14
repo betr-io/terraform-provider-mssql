@@ -7,24 +7,24 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccUser_Local_BasicImport(t *testing.T) {
+func Test_resourceRoleImport(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
     ProviderFactories: testAccProviders,
-    CheckDestroy:      func(state *terraform.State) error { return testAccCheckUserDestroy(state) },
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckRoleDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckUser(t, "test_import", "login", map[string]interface{}{"username": "user_import", "login_name": "user_import", "login_password": "valueIsH8kd$¡"}),
+        Config: testAccCheckRole(t, "test_import", "test-role-name", map[string]interface{}{}),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckUserExists("mssql_user.test_import"),
+          testAccCheckRoleExists("mssql_role.test_import"),
         ),
       },
       {
-        ResourceName:      "mssql_user.test_import",
+        ResourceName:      "mssql_role.test_import",
         ImportState:       true,
         ImportStateVerify: true,
-        ImportStateIdFunc: testResourceTryGetStateId("mssql_user.test_import"),
+        ImportStateIdFunc: testResourceTryGetStateId("mssql_role.test_import"),
       },
     },
   })
