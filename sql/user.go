@@ -1,10 +1,10 @@
 package sql
 
 import (
-	"context"
-	"database/sql"
-	"strings"
-	"github.com/betr-io/terraform-provider-mssql/mssql/model"
+  "context"
+  "database/sql"
+  "github.com/betr-io/terraform-provider-mssql/mssql/model"
+  "strings"
 )
 
 func (c *Connector) GetUser(ctx context.Context, database, username string) (*model.User, error) {
@@ -120,7 +120,10 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                               'DEFAULT_LANGUAGE = ' + Coalesce(QuoteName(@language), 'NONE')
                 END
             END
-          IF exists (select compatibility_level FROM sys.databases where name = db_name() and compatibility_level < 130)
+
+          BEGIN TRANSACTION;
+          EXEC sp_getapplock @Resource = 'create_func', @LockMode = 'Exclusive';
+          IF exists (select compatibility_level FROM sys.databases where name = db_name() and compatibility_level < 130) AND objectproperty(object_id('String_Split'), 'isProcedure') IS NULL
           BEGIN
               DECLARE @sql NVARCHAR(MAX);
               SET @sql = N'Create FUNCTION [dbo].[String_Split]
@@ -146,6 +149,8 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                     )';
               EXEC sp_executesql @sql;
           END
+          EXEC sp_releaseapplock @Resource = 'create_func';
+          COMMIT TRANSACTION;
           SET @stmt = @stmt + '; ' +
                       'DECLARE role_cur CURSOR FOR SELECT name FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE type = ''R'' AND name != ''public'' AND name COLLATE SQL_Latin1_General_CP1_CI_AS IN (SELECT value FROM String_Split(' + QuoteName(@roles, '''') + ', '',''));' +
                       'DECLARE @role nvarchar(max);' +
@@ -194,7 +199,10 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
             BEGIN
               SET @stmt = @stmt + ', DEFAULT_LANGUAGE = ' + Coalesce(QuoteName(@language), 'NONE')
             END
-          IF exists (select compatibility_level FROM sys.databases where name = db_name() and compatibility_level < 130)
+
+          BEGIN TRANSACTION;
+          EXEC sp_getapplock @Resource = 'create_func', @LockMode = 'Exclusive';
+          IF exists (select compatibility_level FROM sys.databases where name = db_name() and compatibility_level < 130) AND objectproperty(object_id('String_Split'), 'isProcedure') IS NULL
           BEGIN
               DECLARE @sql NVARCHAR(MAX);
               SET @sql = N'Create FUNCTION [dbo].[String_Split]
@@ -220,6 +228,8 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
                     )';
               EXEC sp_executesql @sql;
           END
+          EXEC sp_releaseapplock @Resource = 'create_func';
+          COMMIT TRANSACTION;
           SET @stmt = @stmt + '; ' +
                       'DECLARE @sql nvarchar(max);' +
                       'DECLARE @role nvarchar(max);' +
