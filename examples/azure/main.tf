@@ -225,6 +225,18 @@ resource "mssql_user" "server" {
   login_name = mssql_login.server.login_name
 }
 
+resource "mssql_role" "server" {
+  server {
+    host = azurerm_mssql_server.sql_server.fully_qualified_domain_name
+    login {
+      username = azurerm_mssql_server.sql_server.administrator_login
+      password = azurerm_mssql_server.sql_server.administrator_login_password
+    }
+  }
+  database = azurerm_mssql_database.db.name
+  role_name = "testrole"
+}
+
 output "instance" {
   value = {
     login_name = mssql_login.server.login_name,
