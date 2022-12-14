@@ -1,17 +1,21 @@
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 1.3.6"
   required_providers {
-    azuread = {
-      source  = "hashicorp/azuread"
-      version = "~> 2.22.0"
+    docker = {
+      source  = "kreuzwerker/docker"
+      version = "~> 2.23.1"
     }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 3.8.0"
     }
-    docker = {
-      source  = "kreuzwerker/docker"
-      version = "~> 2.16.0"
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 2.22.0"
+    }
+    mssql = {
+      source  = "betr-io/mssql"
+      version = "~> 0.2.6"
     }
     local = {
       source  = "hashicorp/local"
@@ -19,7 +23,11 @@ terraform {
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.2"
+      version = "~> 3.4.3"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "0.9.0"
     }
   }
 }
