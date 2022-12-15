@@ -80,7 +80,7 @@ func resourceUser() *schema.Resource {
 				},
 			},
 			rolesProp: {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -111,7 +111,7 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
 	password := data.Get(passwordProp).(string)
 	defaultSchema := data.Get(defaultSchemaProp).(string)
 	defaultLanguage := data.Get(defaultLanguageProp).(string)
-	roles := data.Get(rolesProp).([]interface{})
+	roles := data.Get(rolesProp).(*schema.Set).List()
 
 	if loginName != "" && password != "" {
 		return diag.Errorf(loginNameProp + " and " + passwordProp + " cannot both be set")
@@ -208,7 +208,7 @@ func resourceUserUpdate(ctx context.Context, data *schema.ResourceData, meta int
 	username := data.Get(usernameProp).(string)
 	defaultSchema := data.Get(defaultSchemaProp).(string)
 	defaultLanguage := data.Get(defaultLanguageProp).(string)
-	roles := data.Get(rolesProp).([]interface{})
+	roles := data.Get(rolesProp).(*schema.Set).List()
 
 	connector, err := getUserConnector(meta, data)
 	if err != nil {
