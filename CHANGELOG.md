@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7] - 2022-12-16
+
+### Fixed
+
+- Fix concurrency issue on user create/update. [PR #52](https://github.com/betr-io/terraform-provider-mssql/pull/52). Closes [#31](https://github.com/betr-io/terraform-provider-mssql/issues/31]. Thanks to [Isabel Andrade](https://github.com/beandrad) for the PR.
+- Fix role reorder update issue. [PR #53](https://github.com/betr-io/terraform-provider-mssql/pull/53). Closes [#46](https://github.com/betr-io/terraform-provider-mssql/issues/46). Thanks to [Paul Brittain](https://github.com/paulbrittain) for the PR.
+
 ## [0.2.6] - 2022-11-25
 
 ### Added
@@ -92,7 +99,8 @@ Initial release.
 - Resource `mssql_login` to manipulate logins to a SQL Server.
 - Resource `mssql_user` to manipulate users in a SQL Server database.
 
-[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/betr-io/terraform-provider-mssql/compare/v0.2.3...v0.2.4
