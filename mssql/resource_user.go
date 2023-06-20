@@ -89,6 +89,7 @@ func resourceUser() *schema.Resource {
 		},
 		Timeouts: &schema.ResourceTimeout{
 			Default: defaultTimeout,
+			Read: defaultTimeout,
 		},
 	}
 }
