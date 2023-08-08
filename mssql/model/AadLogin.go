@@ -1,7 +1,6 @@
 package model
 
-type Login struct {
-	PrincipalID     int64
+type AadLogin struct {
 	LoginName       string
 	DefaultDatabase string
 	DefaultLanguage string
