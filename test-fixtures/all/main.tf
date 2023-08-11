@@ -142,5 +142,9 @@ resource "local_sensitive_file" "local_env" {
                          export TF_ACC_AZURE_USER_CLIENT_ID='${azuread_service_principal.user.application_id}'
                          export TF_ACC_AZURE_USER_CLIENT_USER='${azuread_service_principal.user.display_name}'
                          export TF_ACC_AZURE_USER_CLIENT_SECRET='${azuread_service_principal_password.user.value}'
+                         # Configuration for fedauth which uses env vars via DefaultAzureCredential
+                         export AZURE_TENANT_ID='${var.tenant_id}'
+                         export AZURE_CLIENT_ID='${azuread_service_principal.sa.application_id}'
+                         export AZURE_CLIENT_SECRET='${azuread_service_principal_password.sa.value}'
                          EOT
 }

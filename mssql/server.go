@@ -16,6 +16,12 @@ func getServerSchema(prefix string) map[string]*schema.Schema {
 	if len(prefix) > 0 {
 		prefix = prefix + ".0."
 	}
+	var LoginMethods = []string{
+		prefix + "login",
+		prefix + "azure_login",
+		prefix + "azuread_default_chain_auth",
+		prefix + "azuread_managed_identity_auth",
+	}
 	return map[string]*schema.Schema{
 		"host": {
 			Type:     schema.TypeString,
@@ -35,7 +41,7 @@ func getServerSchema(prefix string) map[string]*schema.Schema {
 			Type:         schema.TypeList,
 			MaxItems:     1,
 			Optional:     true,
-			ExactlyOneOf: []string{prefix + "login", prefix + "azure_login"},
+			ExactlyOneOf: LoginMethods,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"username": {
@@ -56,7 +62,7 @@ func getServerSchema(prefix string) map[string]*schema.Schema {
 			Type:         schema.TypeList,
 			MaxItems:     1,
 			Optional:     true,
-			ExactlyOneOf: []string{prefix + "login", prefix + "azure_login"},
+			ExactlyOneOf: LoginMethods,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"tenant_id": {
@@ -74,6 +80,27 @@ func getServerSchema(prefix string) map[string]*schema.Schema {
 						Required:    true,
 						Sensitive:   true,
 						DefaultFunc: schema.EnvDefaultFunc("MSSQL_CLIENT_SECRET", nil),
+					},
+				},
+			},
+		},
+		"azuread_default_chain_auth": {
+			Type:         schema.TypeList,
+			MaxItems:     1,
+			Optional:     true,
+			ExactlyOneOf: LoginMethods,
+			Elem:         &schema.Resource{},
+		},
+		"azuread_managed_identity_auth": {
+			Type:         schema.TypeList,
+			MaxItems:     1,
+			Optional:     true,
+			ExactlyOneOf: LoginMethods,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"user_id": {
+						Type:     schema.TypeString,
+						Optional: true,
 					},
 				},
 			},

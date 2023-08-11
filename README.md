@@ -71,11 +71,14 @@ make azure-destroy
 ```
 
 > **NOTE**: This will create resources in Azure and _will_ incur costs.
+>
+> **Note to self**: Remember to set current IP address in `test-fixtures/all/terraform.tfvars`, and activate `Global Administrator` in PIM to run Azure tests.
 
 ## Release provider
 
 To create a release, do:
 
+- Update `CHANGELOG.md`.
 - Update `VERSION` in `Makefile` (only used for installing the provider when developing).
 - Push a new valid version tag (e.g. `v1.2.3`) to GitHub.
 - See also [Publishing Providers](https://www.terraform.io/docs/registry/providers/publishing.html).
