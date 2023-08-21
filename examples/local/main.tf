@@ -79,6 +79,21 @@ resource "mssql_login" "example" {
   depends_on = [time_sleep.wait_5_seconds]
 }
 
+resource "mssql_login" "example" {
+  server {
+    host = docker_container.mssql.ip_address
+    login {
+      username = local.local_username
+      password = local.local_password
+    }
+  }
+  login_name = random_password.example.keepers.login_name
+  password   = random_password.example.result
+  sid        = "0xB7BDEF7990D03541BAA2AD73E4FF18E8"
+
+  depends_on = [time_sleep.wait_5_seconds]
+}
+
 resource "mssql_user" "example" {
   server {
     host = docker_container.mssql.ip_address

@@ -1,13 +1,13 @@
 package mssql
 
 import (
-	"errors"
 	"net"
 	"net/url"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/pkg/errors"
 )
 
 const DefaultPort = "1433"

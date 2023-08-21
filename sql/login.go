@@ -1,33 +1,38 @@
 package sql
 
 import (
-  "context"
-  "database/sql"
-  "github.com/betr-io/terraform-provider-mssql/mssql/model"
+	"context"
+	"database/sql"
+
+	"github.com/betr-io/terraform-provider-mssql/mssql/model"
 )
 
 func (c *Connector) GetLogin(ctx context.Context, name string) (*model.Login, error) {
-  var login model.Login
-  err := c.QueryRowContext(ctx,
-    "SELECT principal_id, name, default_database_name, default_language_name FROM [master].[sys].[sql_logins] WHERE [name] = @name",
-    func(r *sql.Row) error {
-      return r.Scan(&login.PrincipalID, &login.LoginName, &login.DefaultDatabase, &login.DefaultLanguage)
-    },
-    sql.Named("name", name),
-  )
-  if err != nil {
-    if err == sql.ErrNoRows {
-      return nil, nil
-    }
-    return nil, err
-  }
-  return &login, nil
+	var login model.Login
+	err := c.QueryRowContext(ctx,
+		"SELECT principal_id, name, CONVERT(VARCHAR(1000), [sid], 1), default_database_name, default_language_name FROM [master].[sys].[sql_logins] WHERE [name] = @name",
+		func(r *sql.Row) error {
+			return r.Scan(&login.PrincipalID, &login.LoginName, &login.SIDStr, &login.DefaultDatabase, &login.DefaultLanguage)
+		},
+		sql.Named("name", name),
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &login, nil
 }
 
-func (c *Connector) CreateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error {
-  cmd := `DECLARE @sql nvarchar(max)
+func (c *Connector) CreateLogin(ctx context.Context, name, password, sid, defaultDatabase, defaultLanguage string) error {
+	cmd := `DECLARE @sql nvarchar(max)
           SET @sql = 'CREATE LOGIN ' + QuoteName(@name) + ' ' +
                      'WITH PASSWORD = ' + QuoteName(@password, '''')
+          IF NOT @sid = ''
+            BEGIN
+              SET @sql = @sql + ', SID = ' + CONVERT(VARCHAR(1000), @sid, 1)
+            END
           IF @@VERSION NOT LIKE 'Microsoft SQL Azure%'
             BEGIN
               IF @defaultDatabase = '' SET @defaultDatabase = 'master'
@@ -42,18 +47,19 @@ func (c *Connector) CreateLogin(ctx context.Context, name, password, defaultData
                 END
             END
           EXEC (@sql)`
-  database := "master"
-  return c.
-    setDatabase(&database).
-    ExecContext(ctx, cmd,
-    sql.Named("name", name),
-    sql.Named("password", password),
-    sql.Named("defaultDatabase", defaultDatabase),
-    sql.Named("defaultLanguage", defaultLanguage))
+	database := "master"
+	return c.
+		setDatabase(&database).
+		ExecContext(ctx, cmd,
+			sql.Named("name", name),
+			sql.Named("password", password),
+			sql.Named("sid", sid),
+			sql.Named("defaultDatabase", defaultDatabase),
+			sql.Named("defaultLanguage", defaultLanguage))
 }
 
 func (c *Connector) UpdateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error {
-  cmd := `DECLARE @sql nvarchar(max)
+	cmd := `DECLARE @sql nvarchar(max)
           SET @sql = 'ALTER LOGIN ' + QuoteName(@name) + ' ' +
                      'WITH PASSWORD = ' + QuoteName(@password, '''')
           IF @@VERSION NOT LIKE 'Microsoft SQL Azure%'
@@ -71,26 +77,26 @@ func (c *Connector) UpdateLogin(ctx context.Context, name, password, defaultData
                 END
               END
           EXEC (@sql)`
-  return c.ExecContext(ctx, cmd,
-    sql.Named("name", name),
-    sql.Named("password", password),
-    sql.Named("defaultDatabase", defaultDatabase),
-    sql.Named("defaultLanguage", defaultLanguage))
+	return c.ExecContext(ctx, cmd,
+		sql.Named("name", name),
+		sql.Named("password", password),
+		sql.Named("defaultDatabase", defaultDatabase),
+		sql.Named("defaultLanguage", defaultLanguage))
 }
 
 func (c *Connector) DeleteLogin(ctx context.Context, name string) error {
-  if err := c.killSessionsForLogin(ctx, name); err != nil {
-    return err
-  }
-  cmd := `DECLARE @sql nvarchar(max)
+	if err := c.killSessionsForLogin(ctx, name); err != nil {
+		return err
+	}
+	cmd := `DECLARE @sql nvarchar(max)
           SET @sql = 'IF EXISTS (SELECT 1 FROM [master].[sys].[sql_logins] WHERE [name] = ' + QuoteName(@name, '''') + ') ' +
                      'DROP LOGIN ' + QuoteName(@name)
           EXEC (@sql)`
-  return c.ExecContext(ctx, cmd, sql.Named("name", name))
+	return c.ExecContext(ctx, cmd, sql.Named("name", name))
 }
 
 func (c *Connector) killSessionsForLogin(ctx context.Context, name string) error {
-  cmd := `-- adapted from https://stackoverflow.com/a/5178097/38055
+	cmd := `-- adapted from https://stackoverflow.com/a/5178097/38055
           DECLARE sessionsToKill CURSOR FAST_FORWARD FOR
             SELECT session_id
             FROM sys.dm_exec_sessions
@@ -108,5 +114,5 @@ func (c *Connector) killSessionsForLogin(ctx context.Context, name string) error
           END
           CLOSE sessionsToKill
           DEALLOCATE sessionsToKill`
-  return c.ExecContext(ctx, cmd, sql.Named("name", name))
+	return c.ExecContext(ctx, cmd, sql.Named("name", name))
 }

@@ -21,6 +21,7 @@ The following arguments are supported:
 * `server` - (Required) Server and login details for the SQL Server. The attributes supported in the `server` block is detailed below.
 * `login_name` - (Required) The name of the server login. Changing this forces a new resource to be created.
 * `password` - (Required) The password of the server login.
+* `sid` - (Optional) The security identifier (SID).
 * `default_database` - (Optional) The default database of this server login. Defaults to `master`. This argument does not apply to Azure SQL Database.
 * `default_language` - (Optional) The default language of this server login. Defaults to `us_english`. This argument does not apply to Azure SQL Database.
 
@@ -55,6 +56,7 @@ The `azuread_managed_identity_auth` block supports the following arguments:
 The following attributes are exported:
 
 * `principal_id` - The principal id of this server login.
+* `sid` - The security identifier (SID) of this login in String format.
 
 ## Import
 
