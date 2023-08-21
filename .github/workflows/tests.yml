@@ -20,5 +20,6 @@ jobs:
     - name: Run acceptance tests
       run: |
         make docker-start
+        sleep 60
         TESTARGS=-count=1 make testacc-local
         make docker-stop
