@@ -1,21 +1,22 @@
 package sql
 
 import (
-  "context"
-  "database/sql"
-  "database/sql/driver"
-  "fmt"
-  "github.com/Azure/go-autorest/autorest/adal"
-  "github.com/Azure/go-autorest/autorest/azure"
-  mssql "github.com/denisenkom/go-mssqldb"
-  "github.com/denisenkom/go-mssqldb/azuread"
-  "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-  "github.com/pkg/errors"
-  "log"
-  "net/url"
-  "strings"
-  "github.com/betr-io/terraform-provider-mssql/mssql/model"
-  "time"
+	"context"
+	"database/sql"
+	"database/sql/driver"
+	"fmt"
+	"log"
+	"net/url"
+	"strings"
+	"time"
+
+	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/betr-io/terraform-provider-mssql/mssql/model"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	mssql "github.com/microsoft/go-mssqldb"
+	"github.com/microsoft/go-mssqldb/azuread"
+	"github.com/pkg/errors"
 )
 
 type factory struct{}
