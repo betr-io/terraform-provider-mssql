@@ -13,7 +13,7 @@ resource "docker_image" "mssql" {
 
 resource "docker_container" "mssql" {
   name  = "mssql"
-  image = docker_image.mssql.latest
+  image = docker_image.mssql.image_id
   ports {
     internal = 1433
     external = 1433
@@ -51,7 +51,7 @@ resource "azuread_application" "sa" {
 }
 
 resource "azuread_service_principal" "sa" {
-  application_id = azuread_application.sa.application_id
+  client_id = azuread_application.sa.client_id
 }
 
 resource "azuread_service_principal_password" "sa" {
@@ -67,7 +67,7 @@ resource "azuread_application" "user" {
 }
 
 resource "azuread_service_principal" "user" {
-  application_id = azuread_application.user.application_id
+  client_id = azuread_application.user.client_id
 }
 
 resource "azuread_service_principal_password" "user" {
@@ -92,7 +92,7 @@ resource "azurerm_mssql_server" "sql_server" {
 
   azuread_administrator {
     tenant_id      = var.tenant_id
-    object_id      = azuread_service_principal.sa.application_id
+    object_id      = azuread_service_principal.sa.client_id
     login_username = azuread_service_principal.sa.display_name
   }
 
@@ -134,17 +134,17 @@ resource "local_sensitive_file" "local_env" {
                          export MSSQL_USERNAME='${local.local_username}'
                          export MSSQL_PASSWORD='${local.local_password}'
                          export MSSQL_TENANT_ID='${var.tenant_id}'
-                         export MSSQL_CLIENT_ID='${azuread_service_principal.sa.application_id}'
+                         export MSSQL_CLIENT_ID='${azuread_service_principal.sa.client_id}'
                          export MSSQL_CLIENT_SECRET='${azuread_service_principal_password.sa.value}'
                          export TF_ACC_SQL_SERVER='${azurerm_mssql_server.sql_server.fully_qualified_domain_name}'
                          export TF_ACC_AZURE_MSSQL_USERNAME='${azurerm_mssql_server.sql_server.administrator_login}'
                          export TF_ACC_AZURE_MSSQL_PASSWORD='${azurerm_mssql_server.sql_server.administrator_login_password}'
-                         export TF_ACC_AZURE_USER_CLIENT_ID='${azuread_service_principal.user.application_id}'
+                         export TF_ACC_AZURE_USER_CLIENT_ID='${azuread_service_principal.user.client_id}'
                          export TF_ACC_AZURE_USER_CLIENT_USER='${azuread_service_principal.user.display_name}'
                          export TF_ACC_AZURE_USER_CLIENT_SECRET='${azuread_service_principal_password.user.value}'
                          # Configuration for fedauth which uses env vars via DefaultAzureCredential
                          export AZURE_TENANT_ID='${var.tenant_id}'
-                         export AZURE_CLIENT_ID='${azuread_service_principal.sa.application_id}'
+                         export AZURE_CLIENT_ID='${azuread_service_principal.sa.client_id}'
                          export AZURE_CLIENT_SECRET='${azuread_service_principal_password.sa.value}'
                          EOT
 }

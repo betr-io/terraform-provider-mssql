@@ -1,25 +1,25 @@
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 1.5"
   required_providers {
     azuread = {
       source  = "hashicorp/azuread"
-      version = "~> 1.0"
+      version = "~> 2.47"
     }
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 2.99.0"
+      version = "~> 3.85"
     }
     mssql = {
-      source  = "betr.io/betr/mssql"
-      version = "0.2.6"
+      source  = "betr-io/mssql"
+      version = "~> 0.2"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 3.0.0"
+      version = "~> 3.6"
     }
     time = {
       source  = "hashicorp/time"
-      version = "0.6.0"
+      version = "~> 0.10"
     }
   }
 }
@@ -100,13 +100,12 @@ resource "azurerm_mssql_server" "sql_server" {
   }
 }
 
-resource "azurerm_sql_firewall_rule" "sql_server_fw_rule" {
-  count               = length(var.local_ip_addresses)
-  name                = "AllowIP ${count.index}"
-  resource_group_name = azurerm_mssql_server.sql_server.resource_group_name
-  server_name         = azurerm_mssql_server.sql_server.name
-  start_ip_address    = var.local_ip_addresses[count.index]
-  end_ip_address      = var.local_ip_addresses[count.index]
+resource "azurerm_mssql_firewall_rule" "sql_server_fw_rule" {
+  count            = length(var.local_ip_addresses)
+  name             = "AllowIP ${count.index}"
+  server_id        = azurerm_mssql_server.sql_server.id
+  start_ip_address = var.local_ip_addresses[count.index]
+  end_ip_address   = var.local_ip_addresses[count.index]
 }
 
 # The Azure SQL Database used in tests
