@@ -7,6 +7,8 @@
 - [Terraform](https://www.terraform.io/downloads.html) 1.5.x
 - [Go](https://golang.org/doc/install) 1.21 (to build the provider plugin)
 
+I recommend using [tfvm](https://github.com/cbuschka/tfvm) to manage Terraform versions. The `Makefile` assumes that `tfvm` is installed to use the correct version of Terraform when running tests.
+
 ## Usage
 
 ```hcl
