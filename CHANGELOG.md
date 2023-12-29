@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2023-12-29
+
 ### Changed
 
 - Make minimum terraform version 1.5. Versions less than this are no longer supported ([endoflife.date](https://endoflife.date/terraform))
