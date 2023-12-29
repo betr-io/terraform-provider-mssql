@@ -13,7 +13,7 @@ resource "docker_image" "mssql" {
 
 resource "docker_container" "mssql" {
   name  = "mssql"
-  image = docker_image.mssql.latest
+  image = docker_image.mssql.image_id
   ports {
     internal = 1433
     external = 1433

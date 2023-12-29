@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgraded to go version 1.21.
 - Upgraded dependencies.
 - Replaced github.com/denisenkom/go-mssqldb with github.com/microsoft/go-mssqldb.
+- Upgraded terraform dependencies.
+- Make minimum terraform version 1.5. Versions less than this are no longer supported ([endoflife.date](https://endoflife.date/terraform))
 
 ## [0.2.7] - 2022-12-16
 

@@ -1,21 +1,21 @@
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 1.5"
   required_providers {
     docker = {
-      source  = "terraform-providers/docker"
-      version = "~> 2.7.2"
+      source  = "kreuzwerker/docker"
+      version = "~> 3.0"
     }
     mssql = {
       source  = "betr-io/mssql"
-      version = "~> 0.1.0"
+      version = "~> 0.2"
     }
     random = {
       source  = "hashicorp/random"
-      version = "~> 2.3"
+      version = "~> 3.6"
     }
     time = {
       source  = "hashicorp/time"
-      version = "0.6.0"
+      version = "~> 0.10"
     }
   }
 }
@@ -43,7 +43,7 @@ resource "docker_image" "mssql" {
 
 resource "docker_container" "mssql" {
   name  = "mssql"
-  image = docker_image.mssql.latest
+  image = docker_image.mssql.image_id
   env   = ["ACCEPT_EULA=Y", "SA_PASSWORD=${local.local_password}"]
 }
 
@@ -67,7 +67,7 @@ resource "random_password" "example" {
 
 resource "mssql_login" "example" {
   server {
-    host = docker_container.mssql.ip_address
+    host = docker_container.mssql.network_data[0].ip_address
     login {
       username = local.local_username
       password = local.local_password
@@ -81,7 +81,7 @@ resource "mssql_login" "example" {
 
 resource "mssql_user" "example" {
   server {
-    host = docker_container.mssql.ip_address
+    host = docker_container.mssql.network_data[0].ip_address
     login {
       username = local.local_username
       password = local.local_password
@@ -96,4 +96,5 @@ output "login" {
     login_name = mssql_login.example.login_name,
     password   = mssql_login.example.password
   }
+  sensitive = true
 }

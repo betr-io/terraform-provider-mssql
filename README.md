@@ -4,18 +4,18 @@
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) 0.13.x
+- [Terraform](https://www.terraform.io/downloads.html) 1.5.x
 - [Go](https://golang.org/doc/install) 1.21 (to build the provider plugin)
 
 ## Usage
 
 ```hcl
 terraform {
-  required_version = "~> 0.13"
+  required_version = "~> 1.5"
   required_providers {
     mssql = {
-      versions = "~> 0.2.2"
-      source = "betr.io/betr/mssql"
+      versions = "~> 0.2"
+      source = "betr-io/mssql"
     }
   }
 }
