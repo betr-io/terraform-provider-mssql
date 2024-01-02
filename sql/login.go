@@ -9,9 +9,9 @@ import (
 func (c *Connector) GetLogin(ctx context.Context, name string) (*model.Login, error) {
   var login model.Login
   err := c.QueryRowContext(ctx,
-    "SELECT principal_id, name, default_database_name, default_language_name FROM [master].[sys].[sql_logins] WHERE [name] = @name",
+    "SELECT principal_id, name, CONVERT(VARCHAR(1000), [sid], 1), default_database_name, default_language_name FROM [master].[sys].[sql_logins] WHERE [name] = @name",
     func(r *sql.Row) error {
-      return r.Scan(&login.PrincipalID, &login.LoginName, &login.DefaultDatabase, &login.DefaultLanguage)
+      return r.Scan(&login.PrincipalID, &login.LoginName, &login.SIDStr, &login.DefaultDatabase, &login.DefaultLanguage)
     },
     sql.Named("name", name),
   )
@@ -24,10 +24,14 @@ func (c *Connector) GetLogin(ctx context.Context, name string) (*model.Login, er
   return &login, nil
 }
 
-func (c *Connector) CreateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error {
+func (c *Connector) CreateLogin(ctx context.Context, name, password, sid, defaultDatabase, defaultLanguage string) error {
   cmd := `DECLARE @sql nvarchar(max)
           SET @sql = 'CREATE LOGIN ' + QuoteName(@name) + ' ' +
                      'WITH PASSWORD = ' + QuoteName(@password, '''')
+          IF NOT @sid = ''
+            BEGIN
+              SET @sql = @sql + ', SID = ' + CONVERT(VARCHAR(1000), @sid, 1)
+            END
           IF @@VERSION NOT LIKE 'Microsoft SQL Azure%'
             BEGIN
               IF @defaultDatabase = '' SET @defaultDatabase = 'master'
@@ -48,6 +52,7 @@ func (c *Connector) CreateLogin(ctx context.Context, name, password, defaultData
     ExecContext(ctx, cmd,
     sql.Named("name", name),
     sql.Named("password", password),
+    sql.Named("sid", sid),
     sql.Named("defaultDatabase", defaultDatabase),
     sql.Named("defaultLanguage", defaultLanguage))
 }

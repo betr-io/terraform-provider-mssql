@@ -15,7 +15,7 @@ const defaultDatabaseDefault = "master"
 const defaultLanguageProp = "default_language"
 
 type LoginConnector interface {
-  CreateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error
+  CreateLogin(ctx context.Context, name, password, sid, defaultDatabase, defaultLanguage string) error
   GetLogin(ctx context.Context, name string) (*model.Login, error)
   UpdateLogin(ctx context.Context, name, password, defaultDatabase, defaultLanguage string) error
   DeleteLogin(ctx context.Context, name string) error
@@ -49,6 +49,12 @@ func resourceLogin() *schema.Resource {
         Required:  true,
         Sensitive: true,
       },
+      sidStrProp: {
+        Type:     schema.TypeString,
+        Optional: true,
+        ForceNew: true,
+        Computed: true,
+      },
       defaultDatabaseProp: {
         Type:     schema.TypeString,
         Optional: true,
@@ -81,6 +87,7 @@ func resourceLoginCreate(ctx context.Context, data *schema.ResourceData, meta in
 
   loginName := data.Get(loginNameProp).(string)
   password := data.Get(passwordProp).(string)
+  sid := data.Get(sidStrProp).(string)
   defaultDatabase := data.Get(defaultDatabaseProp).(string)
   defaultLanguage := data.Get(defaultLanguageProp).(string)
 
@@ -89,7 +96,7 @@ func resourceLoginCreate(ctx context.Context, data *schema.ResourceData, meta in
     return diag.FromErr(err)
   }
 
-  if err = connector.CreateLogin(ctx, loginName, password, defaultDatabase, defaultLanguage); err != nil {
+  if err = connector.CreateLogin(ctx, loginName, password, sid, defaultDatabase, defaultLanguage); err != nil {
     return diag.FromErr(errors.Wrapf(err, "unable to create login [%s]", loginName))
   }
 
@@ -120,6 +127,9 @@ func resourceLoginRead(ctx context.Context, data *schema.ResourceData, meta inte
     data.SetId("")
   } else {
     if err = data.Set(principalIdProp, login.PrincipalID); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(sidStrProp, login.SIDStr); err != nil {
       return diag.FromErr(err)
     }
     if err = data.Set(defaultDatabaseProp, login.DefaultDatabase); err != nil {
@@ -218,6 +228,9 @@ func resourceLoginImport(ctx context.Context, data *schema.ResourceData, meta in
   }
 
   if err = data.Set(principalIdProp, login.PrincipalID); err != nil {
+    return nil, err
+  }
+  if err = data.Set(sidStrProp, login.SIDStr); err != nil {
     return nil, err
   }
   if err = data.Set(defaultDatabaseProp, login.DefaultDatabase); err != nil {
