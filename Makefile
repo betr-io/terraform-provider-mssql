@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-OPERATING_SYSTEM=Linux
+OPERATING_SYSTEM=MacOS
 TEST?=$$(go list ./... | grep -v 'vendor')
 HOSTNAME=betr.io
 NAMESPACE=betr

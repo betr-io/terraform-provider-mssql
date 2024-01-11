@@ -32,6 +32,7 @@ func TestAccDatabasePermissions_Azure_Basic(t *testing.T) {
 func TestAccDatabasePermissions_Local_Basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
+		IsUnitTest:        runLocalAccTests,
 		ProviderFactories: testAccProviders,
 		CheckDestroy:      func(state *terraform.State) error { return testAccCheckDatabasePermissionsDestroy(state) },
 		Steps: []resource.TestStep{
