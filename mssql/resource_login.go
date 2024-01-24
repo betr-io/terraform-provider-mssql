@@ -9,7 +9,6 @@ import (
   "github.com/betr-io/terraform-provider-mssql/mssql/model"
 )
 
-const loginNameProp = "login_name"
 const defaultDatabaseProp = "default_database"
 const defaultDatabaseDefault = "master"
 const defaultLanguageProp = "default_language"

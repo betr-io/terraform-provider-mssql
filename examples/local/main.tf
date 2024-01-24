@@ -113,3 +113,23 @@ output "login" {
   }
   sensitive = true
 }
+
+data "mssql_login" "example" {
+  server {
+    host = docker_container.mssql.ip_address
+    login {
+      username = local.local_username
+      password = local.local_password
+    }
+  }
+  login_name = mssql_login.example.login_name
+
+  depends_on = [mssql_login.example]
+}
+
+output "datalogin" {
+  value = {
+    principal_id = data.mssql_login.example.principal_id
+    sid          = data.mssql_login.example.sid
+  }
+}
