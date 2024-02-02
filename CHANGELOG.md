@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2024-02-02
+
+- Added `user_type` for supporting either EXTERNAL_GROUP or EXTERNAL_USER in case of Azure SQL database
+
 ## [0.3.0] - 2023-12-29
 
 ### Changed
