@@ -1,14 +1,14 @@
 package sql
 
 import (
-	"context"
-	"database/sql"
-	"github.com/betr-io/terraform-provider-mssql/mssql/model"
-	"strings"
+  "context"
+  "database/sql"
+  "github.com/betr-io/terraform-provider-mssql/mssql/model"
+  "strings"
 )
 
 func (c *Connector) GetUser(ctx context.Context, database, username string) (*model.User, error) {
-	cmd := `DECLARE @stmt nvarchar(max)
+  cmd := `DECLARE @stmt nvarchar(max)
           IF @@VERSION LIKE 'Microsoft SQL Azure%'
             BEGIN
               SET @stmt = 'WITH CTE_Roles (principal_id, role_principal_id) AS ' +
@@ -33,57 +33,57 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
                           '  SELECT member_principal_id, drm.role_principal_id FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm' +
                           '    INNER JOIN CTE_Roles cr ON drm.member_principal_id = cr.role_principal_id' +
                           ') ' +
-                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(1000), p.sid, 1) AS sidStr, COALESCE(sl.name, ''''), COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
+                          'SELECT p.principal_id, p.name, p.authentication_type_desc, p.type, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(1000), p.sid, 1) AS sidStr, COALESCE(sl.name, ''''), COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
                           'FROM ' + QuoteName(@database) + '.[sys].[database_principals] p' +
                           '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
                           '  LEFT JOIN [master].[sys].[sql_logins] sl ON p.sid = sl.sid ' +
                           'WHERE p.name = ' + QuoteName(@username, '''') + ' ' +
-                          'GROUP BY p.principal_id, p.name, p.authentication_type_desc, p.default_schema_name, p.default_language_name, p.sid, sl.name'
+                          'GROUP BY p.principal_id, p.name, p.authentication_type_desc, p.type, p.default_schema_name, p.default_language_name, p.sid, sl.name'
             END
           EXEC (@stmt)`
-	var (
-		user  model.User
-		sid   []byte
-		roles string
-	)
-	err := c.
-		setDatabase(&database).
-		QueryRowContext(ctx, cmd,
-			func(r *sql.Row) error {
-				return r.Scan(&user.PrincipalID, &user.Username, &user.AuthType, &user.UserType, &user.DefaultSchema, &user.DefaultLanguage, &sid, &user.SIDStr, &user.LoginName, &roles)
-			},
-			sql.Named("database", database),
-			sql.Named("username", username),
-		)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	if user.AuthType == "INSTANCE" && user.LoginName == "" {
-		cmd = "SELECT name FROM [sys].[sql_logins] WHERE sid = @sid"
-		c.Database = "master"
-		err = c.QueryRowContext(ctx, cmd,
-			func(r *sql.Row) error {
-				return r.Scan(&user.LoginName)
-			},
-			sql.Named("sid", sid),
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if roles == "" {
-		user.Roles = make([]string, 0)
-	} else {
-		user.Roles = strings.Split(roles, ",")
-	}
-	return &user, nil
+  var (
+    user  model.User
+    sid   []byte
+    roles string
+  )
+  err := c.
+    setDatabase(&database).
+    QueryRowContext(ctx, cmd,
+      func(r *sql.Row) error {
+        return r.Scan(&user.PrincipalID, &user.Username, &user.AuthType, &user.UserType, &user.DefaultSchema, &user.DefaultLanguage, &sid, &user.SIDStr, &user.LoginName, &roles)
+      },
+      sql.Named("database", database),
+      sql.Named("username", username),
+    )
+  if err != nil {
+    if err == sql.ErrNoRows {
+      return nil, nil
+    }
+    return nil, err
+  }
+  if user.AuthType == "INSTANCE" && user.LoginName == "" {
+    cmd = "SELECT name FROM [sys].[sql_logins] WHERE sid = @sid"
+    c.Database = "master"
+    err = c.QueryRowContext(ctx, cmd,
+      func(r *sql.Row) error {
+        return r.Scan(&user.LoginName)
+      },
+      sql.Named("sid", sid),
+    )
+    if err != nil {
+      return nil, err
+    }
+  }
+  if roles == "" {
+    user.Roles = make([]string, 0)
+  } else {
+    user.Roles = strings.Split(roles, ",")
+  }
+  return &user, nil
 }
 
 func (c *Connector) CreateUser(ctx context.Context, database string, user *model.User) error {
-	cmd := `DECLARE @stmt nvarchar(max)
+  cmd := `DECLARE @stmt nvarchar(max)
           DECLARE @language nvarchar(max) = @defaultLanguage
           IF @language = '' SET @language = NULL
           IF @authType = 'INSTANCE'
@@ -106,7 +106,7 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                 BEGIN
                   IF @objectId != ''
                     BEGIN
-                      SET @stmt = 'CREATE USER ' + QuoteName(@username) + ' WITH SID=' + CONVERT(varchar(64), CAST(CAST(@objectId AS UNIQUEIDENTIFIER) AS VARBINARY(16)), 1) + ', TYPE=' + QuoteName(@type)
+                      SET @stmt = 'CREATE USER ' + QuoteName(@username) + ' WITH SID=' + CONVERT(varchar(64), CAST(CAST(@objectId AS UNIQUEIDENTIFIER) AS VARBINARY(16)), 1) + ', TYPE=' + QuoteName(@userType)
                     END
                   ELSE
                     BEGIN
@@ -166,32 +166,31 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                       'CLOSE role_cur;' +
                       'DEALLOCATE role_cur;'
           EXEC (@stmt)`
-	if user.AuthType != "EXTERNAL" {
-		// External users do not have a server login
-		_, err := c.GetLogin(ctx, user.LoginName)
-		if err != nil {
-			return err
-		}
-	}
-
-	return c.
-		setDatabase(&database).
-		ExecContext(ctx, cmd,
-			sql.Named("database", database),
-			sql.Named("type", user.UserType),
-			sql.Named("username", user.Username),
-			sql.Named("objectId", user.ObjectId),
-			sql.Named("loginName", user.LoginName),
-			sql.Named("password", user.Password),
-			sql.Named("authType", user.AuthType),
-			sql.Named("defaultSchema", user.DefaultSchema),
-			sql.Named("defaultLanguage", user.DefaultLanguage),
-			sql.Named("roles", strings.Join(user.Roles, ",")),
-		)
+  if user.AuthType != "EXTERNAL" {
+    // External users do not have a server login
+    _, err := c.GetLogin(ctx, user.LoginName)
+    if err != nil {
+      return err
+    }
+  }
+  return c.
+    setDatabase(&database).
+    ExecContext(ctx, cmd,
+      sql.Named("database", database),
+      sql.Named("username", user.Username),
+      sql.Named("userType", user.UserType),
+      sql.Named("objectId", user.ObjectId),
+      sql.Named("loginName", user.LoginName),
+      sql.Named("password", user.Password),
+      sql.Named("authType", user.AuthType),
+      sql.Named("defaultSchema", user.DefaultSchema),
+      sql.Named("defaultLanguage", user.DefaultLanguage),
+      sql.Named("roles", strings.Join(user.Roles, ",")),
+    )
 }
 
 func (c *Connector) UpdateUser(ctx context.Context, database string, user *model.User) error {
-	cmd := `DECLARE @stmt nvarchar(max)
+  cmd := `DECLARE @stmt nvarchar(max)
           SET @stmt = 'ALTER USER ' + QuoteName(@username) + ' '
           DECLARE @language nvarchar(max) = @defaultLanguage
           IF @language = '' SET @language = NULL
@@ -258,31 +257,31 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
                       'CLOSE add_role_cur;' +
                       'DEALLOCATE add_role_cur;'
           EXEC (@stmt)`
-	return c.
-		setDatabase(&database).
-		ExecContext(ctx, cmd,
-			sql.Named("database", database),
-			sql.Named("username", user.Username),
-			sql.Named("defaultSchema", user.DefaultSchema),
-			sql.Named("defaultLanguage", user.DefaultLanguage),
-			sql.Named("roles", strings.Join(user.Roles, ",")),
-		)
+  return c.
+    setDatabase(&database).
+    ExecContext(ctx, cmd,
+      sql.Named("database", database),
+      sql.Named("username", user.Username),
+      sql.Named("defaultSchema", user.DefaultSchema),
+      sql.Named("defaultLanguage", user.DefaultLanguage),
+      sql.Named("roles", strings.Join(user.Roles, ",")),
+    )
 }
 
 func (c *Connector) DeleteUser(ctx context.Context, database, username string) error {
-	cmd := `DECLARE @stmt nvarchar(max)
+  cmd := `DECLARE @stmt nvarchar(max)
           SET @stmt = 'IF EXISTS (SELECT 1 FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE [name] = ' + QuoteName(@username, '''') + ') ' +
                       'DROP USER ' + QuoteName(@username)
           EXEC (@stmt)`
-	return c.
-		setDatabase(&database).
-		ExecContext(ctx, cmd, sql.Named("database", database), sql.Named("username", username))
+  return c.
+    setDatabase(&database).
+    ExecContext(ctx, cmd, sql.Named("database", database), sql.Named("username", username))
 }
 
 func (c *Connector) setDatabase(database *string) *Connector {
-	if *database == "" {
-		*database = "master"
-	}
-	c.Database = *database
-	return c
+  if *database == "" {
+    *database = "master"
+  }
+  c.Database = *database
+  return c
 }

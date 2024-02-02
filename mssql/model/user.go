@@ -2,8 +2,8 @@ package model
 
 type User struct {
 	PrincipalID     int64
-	UserType        string
 	Username        string
+	UserType        string
 	ObjectId        string
 	LoginName       string
 	Password        string
