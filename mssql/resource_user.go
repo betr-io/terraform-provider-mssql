@@ -44,6 +44,11 @@ func resourceUser() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			isGroupProp: {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
 			loginNameProp: {
 				Type:     schema.TypeString,
 				Optional: true,
