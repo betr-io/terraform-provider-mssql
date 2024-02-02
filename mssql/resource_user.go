@@ -45,7 +45,7 @@ func resourceUser() *schema.Resource {
 				ForceNew: true,
 			},
 			userTypeProp: {
-				Type:     schema.TypeBool,
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
