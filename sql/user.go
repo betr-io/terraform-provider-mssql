@@ -18,11 +18,11 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
                           '  SELECT member_principal_id, drm.role_principal_id FROM [sys].[database_role_members] drm' +
                           '    INNER JOIN CTE_Roles cr ON drm.member_principal_id = cr.role_principal_id' +
                           ') ' +
-                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(1000), p.sid, 1) AS sidStr, '''', COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
+                          'SELECT p.principal_id, p.name, p.authentication_type_desc, p.type, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(1000), p.sid, 1) AS sidStr, '''', COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
                           'FROM [sys].[database_principals] p' +
                           '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
                           'WHERE p.name = ' + QuoteName(@username, '''') + ' ' +
-                          'GROUP BY p.principal_id, p.name, p.authentication_type_desc, p.default_schema_name, p.default_language_name, p.sid'
+                          'GROUP BY p.principal_id, p.name, p.authentication_type_desc, p.type, p.default_schema_name, p.default_language_name, p.sid'
             END
           ELSE
             BEGIN
@@ -50,7 +50,7 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
 		setDatabase(&database).
 		QueryRowContext(ctx, cmd,
 			func(r *sql.Row) error {
-				return r.Scan(&user.PrincipalID, &user.Username, &user.AuthType, &user.DefaultSchema, &user.DefaultLanguage, &sid, &user.SIDStr, &user.LoginName, &roles)
+				return r.Scan(&user.PrincipalID, &user.Username, &user.AuthType, &user.UserType, &user.DefaultSchema, &user.DefaultLanguage, &sid, &user.SIDStr, &user.LoginName, &roles)
 			},
 			sql.Named("database", database),
 			sql.Named("username", username),
@@ -106,7 +106,7 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
                 BEGIN
                   IF @objectId != ''
                     BEGIN
-                      SET @stmt = 'CREATE USER ' + QuoteName(@username) + ' WITH SID=' + CONVERT(varchar(64), CAST(CAST(@objectId AS UNIQUEIDENTIFIER) AS VARBINARY(16)), 1) + ', TYPE=' + QuoteName(@userType)
+                      SET @stmt = 'CREATE USER ' + QuoteName(@username) + ' WITH SID=' + CONVERT(varchar(64), CAST(CAST(@objectId AS UNIQUEIDENTIFIER) AS VARBINARY(16)), 1) + ', TYPE=' + QuoteName(@type)
                     END
                   ELSE
                     BEGIN
@@ -174,16 +174,11 @@ func (c *Connector) CreateUser(ctx context.Context, database string, user *model
 		}
 	}
 
-	var userType string = "E"
-	if user.IsGroup {
-		userType = "X"
-	}
-
 	return c.
 		setDatabase(&database).
 		ExecContext(ctx, cmd,
 			sql.Named("database", database),
-			sql.Named("userType", userType),
+			sql.Named("type", user.UserType),
 			sql.Named("username", user.Username),
 			sql.Named("objectId", user.ObjectId),
 			sql.Named("loginName", user.LoginName),

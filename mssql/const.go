@@ -6,7 +6,7 @@ const (
 	principalIdProp          = "principal_id"
 	usernameProp             = "username"
 	objectIdProp             = "object_id"
-	isGroupProp              = "is_group"
+	userTypeProp             = "user_type"
 	passwordProp             = "password"
 	sidStrProp               = "sid"
 	clientIdProp             = "client_id"

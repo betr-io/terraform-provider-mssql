@@ -2,7 +2,7 @@ package model
 
 type User struct {
 	PrincipalID     int64
-	IsGroup         bool
+	UserType        string
 	Username        string
 	ObjectId        string
 	LoginName       string
