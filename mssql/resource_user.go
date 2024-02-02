@@ -48,6 +48,7 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Default:  "E",
 			},
 			loginNameProp: {
 				Type:     schema.TypeString,
