@@ -187,11 +187,11 @@ func resourceDatabasePermissionImport(ctx context.Context, data *schema.Resource
 
   permissions, err := connector.GetDatabasePermissions(ctx, database, principalId)
   if err != nil {
-    return nil, errors.Wrapf(err, "unable to import permissions for principalId [%d] on database [%s]", principalId, database)
+    return nil, errors.Wrapf(err, "unable to import permissions for principal [%d] on database [%s]", principalId, database)
   }
 
   if permissions == nil {
-    return nil, errors.Errorf("no permissions found for principalId [%d] on database [%s] for import", principalId, database)
+    return nil, errors.Errorf("no permissions found for principal [%d] on database [%s] for import", principalId, database)
   }
 
   if err = data.Set(databaseProp, permissions.DatabaseName); err != nil {
