@@ -27,7 +27,7 @@ func getDatabasePermissionsID(data *schema.ResourceData) string {
   port := data.Get(serverProp + ".0.port").(string)
   database := data.Get(databaseProp).(string)
   principalId := data.Get(principalIdProp).(int)
-  return fmt.Sprintf("sqlserver://%s:%s/%s/%d/%s", host, port, database, principalId, "database_permissions")
+  return fmt.Sprintf("sqlserver://%s:%s/%s/%d/%s", host, port, database, principalId, "permissions")
 }
 
 func loggerFromMeta(meta interface{}, resource, function string) zerolog.Logger {
