@@ -61,6 +61,7 @@ type Check struct {
 type TestConnector interface {
   GetLogin(name string) (*model.Login, error)
   GetUser(database, name string) (*model.User, error)
+	GetDatabasePermissions(database string, principalId int) (*model.DatabasePermissions, error)
   GetSystemUser() (string, error)
   GetCurrentUser(database string) (string, string, error)
 }
@@ -156,6 +157,10 @@ func (t testConnector) GetLogin(name string) (*model.Login, error) {
 
 func (t testConnector) GetUser(database, name string) (*model.User, error) {
   return t.c.(UserConnector).GetUser(context.Background(), database, name)
+}
+
+func (t testConnector) GetDatabasePermissions(database string, principalId int) (*model.DatabasePermissions, error) {
+	return t.c.(DatabasePermissionsConnector).GetDatabasePermissions(context.Background(), database, principalId)
 }
 
 func (t testConnector) GetSystemUser() (string, error) {
