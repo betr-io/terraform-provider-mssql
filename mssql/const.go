@@ -13,5 +13,7 @@ const (
   defaultSchemaProp        = "default_schema"
   defaultSchemaPropDefault = "dbo"
   rolesProp                = "roles"
-	loginNameProp            = "login_name"
+  loginNameProp            = "login_name"
+  permissionsProp          = "permissions"
+	roleNameProp             = "role_name"
 )

@@ -133,3 +133,15 @@ output "datalogin" {
     sid          = data.mssql_login.example.sid
   }
 }
+
+resource "mssql_role" "example" {
+  server {
+    host = docker_container.mssql.ip_address
+    login {
+      username = local.local_username
+      password = local.local_password
+    }
+  }
+  database = "master"
+  role_name = "testrole"
+}

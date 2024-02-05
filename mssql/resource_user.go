@@ -325,11 +325,3 @@ func getUserConnector(meta interface{}, data *schema.ResourceData) (UserConnecto
 	}
 	return connector.(UserConnector), nil
 }
-
-func toStringSlice(values []interface{}) []string {
-	result := make([]string, len(values))
-	for i, v := range values {
-		result[i] = v.(string)
-	}
-	return result
-}
