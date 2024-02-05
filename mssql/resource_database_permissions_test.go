@@ -17,7 +17,7 @@ func TestAccDatabasePermissions_Local_Basic(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckDatabasePermissionsDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckDatabasePermissions(t, "database", "login", map[string]interface{}{"database":"master", "username": "db_user_perm", "permissions": "[\"REFERENCES\", \"UPDATE\"]", "login_name": "db_login_perm", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckDatabasePermissions(t, "database", "login", map[string]interface{}{"database": "master", "username": "db_user_perm", "permissions": "[\"REFERENCES\", \"UPDATE\"]", "login_name": "db_login_perm", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
           testAccCheckDatabasePermissionsExist("mssql_database_permissions.database"),
           resource.TestCheckResourceAttr("mssql_database_permissions.database", "database", "master"),
@@ -45,7 +45,7 @@ func TestAccDatabasePermissions_Azure_Basic(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckDatabasePermissionsDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckDatabasePermissions(t, "database", "login", map[string]interface{}{"database":"testdb", "username": "db_user_perm", "permissions": "[\"EXECUTE\"]", "login_name": "db_login_perm", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckDatabasePermissions(t, "database", "azure", map[string]interface{}{"database": "testdb", "username": "db_user_perm", "permissions": "[\"EXECUTE\"]", "password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
           testAccCheckDatabasePermissionsExist("mssql_database_permissions.database"),
           resource.TestCheckResourceAttr("mssql_database_permissions.database", "database", "testdb"),

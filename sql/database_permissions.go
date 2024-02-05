@@ -89,11 +89,11 @@ func (c *Connector) CreateDatabasePermissions(ctx context.Context, permissions *
     )
 }
 
-func (c *Connector) DeleteDatabasePermissions(ctx context.Context, database string, principalId int) error {
+func (c *Connector) DeleteDatabasePermissions(ctx context.Context, permissions *model.DatabasePermissions) error {
   cmd := `declare @stmt nvarchar(max)
           DECLARE @user_name varchar(80)
           SET @user_name = (SELECT pr.name FROM sys.database_principals AS pr WHERE pr.principal_id = @principalId)
-          DECLARE perm_cur CURSOR FOR SELECT DISTINCT pe.permission_name FROM sys.database_principals AS pr INNER JOIN sys.database_permissions AS pe ON pe.grantee_principal_id = pr.principal_id WHERE pr.principal_id = @principalId
+          DECLARE perm_cur CURSOR FOR SELECT value FROM String_Split(@permissions, ',')
           DECLARE @permission_name nvarchar(max)
           OPEN perm_cur
           FETCH NEXT FROM perm_cur INTO @permission_name
@@ -107,8 +107,10 @@ func (c *Connector) DeleteDatabasePermissions(ctx context.Context, database stri
           DEALLOCATE perm_cur
           `
   return c.
-    setDatabase(&database).
+  setDatabase(&permissions.DatabaseName).
     ExecContext(ctx, cmd,
       // sql.Named("database", database),
-      sql.Named("principalId", principalId))
+      sql.Named("principalId", fmt.Sprintf("%d", permissions.PrincipalID)),
+      sql.Named("permissions", strings.Join(permissions.Permissions, ",")),
+    )
 }

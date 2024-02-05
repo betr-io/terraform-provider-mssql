@@ -56,7 +56,7 @@ func resourceDatabasePermissions() *schema.Resource {
 type DatabasePermissionsConnector interface {
   CreateDatabasePermissions(ctx context.Context, dbPermission *model.DatabasePermissions) error
   GetDatabasePermissions(ctx context.Context, database string, principalId int) (*model.DatabasePermissions, error)
-  DeleteDatabasePermissions(ctx context.Context, database string, principalId int) error
+  DeleteDatabasePermissions(ctx context.Context, dbPermission *model.DatabasePermissions) error
 }
 
 func resourceDatabasePermissionsCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -128,13 +128,19 @@ func resourceDatabasePermissionDelete(ctx context.Context, data *schema.Resource
 
   database := data.Get(databaseProp).(string)
   principalId := data.Get(principalIdProp).(int)
+  permissions := data.Get(permissionsProp).(*schema.Set).List()
 
   connector, err := getDatabasePermissionsConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
 
-  if err = connector.DeleteDatabasePermissions(ctx, database, principalId); err != nil {
+  dbPermissionModel := &model.DatabasePermissions{
+    DatabaseName: database,
+    PrincipalID:  principalId,
+    Permissions:  toStringSlice(permissions),
+  }
+  if err = connector.DeleteDatabasePermissions(ctx, dbPermissionModel); err != nil {
     return diag.FromErr(errors.Wrapf(err, "unable to delete permissions for principal [%d] on database [%s]", principalId, database))
   }
 
