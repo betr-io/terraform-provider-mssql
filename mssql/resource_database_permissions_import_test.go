@@ -16,7 +16,7 @@ func TestAccDatabasePermissions_Local_BasicImport(t *testing.T) {
       {
         Config: testAccCheckDatabasePermissions(t, "test_import", "login", map[string]interface{}{"username": "db_user_import", "database":"master", "permissions": "[\"REFERENCES\"]", "login_name": "db_login_import", "login_password": "valueIsH8kd$¡"}),
         Check: resource.ComposeTestCheckFunc(
-					testAccCheckDatabasePermissionsExist("mssql_database_permissions.test_import"),
+          testAccCheckDatabasePermissionsExist("mssql_database_permissions.test_import"),
         ),
       },
       {
