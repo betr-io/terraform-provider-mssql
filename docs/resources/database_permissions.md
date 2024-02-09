@@ -54,3 +54,16 @@ The `azuread_managed_identity_auth` block supports the following arguments:
 * `user_id` - (Optional) Id of a user-assigned managed identity to assume. Omitting this property instructs the provider to assume a system-assigned managed identity.
 
 -> Only one of `login`, `azure_login`, `azuread_default_chain_auth` and `azuread_managed_identity_auth` can be specified.
+
+## Import
+
+Before importing `mssql_database_permissions`, you must to configure the authentication to your sql server:
+
+1. Using Azure AD authentication, you must set the following environment variables: `MSSQL_TENANT_ID`, `MSSQL_CLIENT_ID` and `MSSQL_CLIENT_SECRET`.
+2. Using SQL authentication, you must set the following environment variables: `MSSQL_USERNAME` and `MSSQL_PASSWORD`.
+
+After that you can import the MSSQL Database permissions using the server URL and `principal ID of the user`, e.g.
+
+```shell
+terraform import mssql_database_permissions.example 'mssql://example-sql-server.database.windows.net/master/7/permissions'
+```

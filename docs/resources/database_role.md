@@ -1,13 +1,13 @@
-# mssql_role
+# mssql_database_role
 
-The `mssql_role` resource creates and manages a role on a SQL Server database.
+The `mssql_database_role` resource creates and manages a role on a SQL Server database.
 
 ## Example Usage
 
 ### Basic usage
 
 ```hcl
-resource "mssql_role" "example" {
+resource "mssql_database_role" "example" {
   server {
     host = "example-sql-server.database.windows.net"
     azure_login {
@@ -43,7 +43,7 @@ The `login` block supports the following arguments:
 
 ## Import
 
-Before importing `mssql_role`, you must to configure the authentication to your sql server:
+Before importing `mssql_database_role`, you must to configure the authentication to your sql server:
 
 1. Using Azure AD authentication, you must set the following environment variables: `MSSQL_TENANT_ID`, `MSSQL_CLIENT_ID` and `MSSQL_CLIENT_SECRET`.
 2. Using SQL authentication, you must set the following environment variables: `MSSQL_USERNAME` and `MSSQL_PASSWORD`.
@@ -51,5 +51,5 @@ Before importing `mssql_role`, you must to configure the authentication to your 
 After that you can import the SQL Server database role using the server URL and `role name`, e.g.
 
 ```shell
-terraform import mssql_role.example 'mssql://example-sql-server.database.windows.net/master/testrole'
+terraform import mssql_database_role.example 'mssql://example-sql-server.database.windows.net/master/testrole'
 ```

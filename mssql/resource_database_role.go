@@ -9,7 +9,7 @@ import (
   "github.com/pkg/errors"
 )
 
-func resourceRole() *schema.Resource {
+func resourceDatabaseRole() *schema.Resource {
   return &schema.Resource{
     CreateContext: resourceRoleCreate,
     ReadContext:   resourceRoleRead,
@@ -38,6 +38,12 @@ func resourceRole() *schema.Resource {
         Required:    true,
         Description: "The name of the role",
       },
+      ownerNameProp: {
+        Type:     schema.TypeString,
+        Optional: true,
+        Computed: true,
+        // ForceNew: true,
+      },
       principalIdProp: {
         Type:     schema.TypeInt,
         Computed: true,
@@ -50,9 +56,9 @@ func resourceRole() *schema.Resource {
 }
 
 type RoleConnector interface {
-  CreateRole(ctx context.Context, database string, roleName string) error
-  GetRole(ctx context.Context, database, roleName string) (*model.Role, error)
-  UpdateRole(ctx context.Context, database string, role *model.Role) error
+  CreateRole(ctx context.Context, database string, roleName string, ownerName string) error
+  GetRole(ctx context.Context, database, roleName string) (*model.DatabaseRole, error)
+  UpdateRole(ctx context.Context, database string, role *model.DatabaseRole) error
   DeleteRole(ctx context.Context, database, roleName string) error
 }
 
@@ -81,6 +87,9 @@ func resourceRoleRead(ctx context.Context, data *schema.ResourceData, meta inter
     if err = data.Set(principalIdProp, role.RoleID); err != nil {
       return diag.FromErr(err)
     }
+    if err = data.Set(ownerNameProp, role.OwnerName); err != nil {
+      return diag.FromErr(err)
+    }
   }
 
   logger.Info().Msgf("read role [%s].[%s]", database, roleName)
@@ -89,18 +98,19 @@ func resourceRoleRead(ctx context.Context, data *schema.ResourceData, meta inter
 }
 
 func resourceRoleCreate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-  logger := loggerFromMeta(meta, "user", "create")
-  logger.Debug().Msgf("Create role %s", getRoleID(data))
+  logger := loggerFromMeta(meta, "role", "create")
+  logger.Debug().Msgf("Create %s", getRoleID(data))
 
   database := data.Get(databaseProp).(string)
   roleName := data.Get(roleNameProp).(string)
+  ownerName := data.Get(ownerNameProp).(string)
 
   connector, err := getRoleConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
 
-  if err = connector.CreateRole(ctx, database, roleName); err != nil {
+  if err = connector.CreateRole(ctx, database, roleName, ownerName); err != nil {
     return diag.FromErr(errors.Wrapf(err, "unable to create role [%s].[%s]", database, roleName))
   }
 
@@ -142,15 +152,17 @@ func resourceRoleUpdate(ctx context.Context, data *schema.ResourceData, meta int
   database := data.Get(databaseProp).(string)
   roleId := data.Get(principalIdProp).(int)
   roleName := data.Get(roleNameProp).(string)
+  ownerName := data.Get(ownerNameProp).(string)
 
   connector, err := getRoleConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
 
-  role := &model.Role{
-    RoleID:   int64(roleId),
+  role := &model.DatabaseRole{
+    RoleID:   int(roleId),
     RoleName: roleName,
+    OwnerName: ownerName,
   }
 
   if err = connector.UpdateRole(ctx, database, role); err != nil {
@@ -207,6 +219,9 @@ func resourceRoleImport(ctx context.Context, data *schema.ResourceData, meta int
   }
 
   if err = data.Set(principalIdProp, role.RoleID); err != nil {
+    return nil, err
+  }
+  if err = data.Set(ownerNameProp, role.OwnerName); err != nil {
     return nil, err
   }
 

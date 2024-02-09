@@ -134,7 +134,7 @@ output "datalogin" {
   }
 }
 
-resource "mssql_role" "example" {
+resource "mssql_database_role" "example" {
   server {
     host = docker_container.mssql.ip_address
     login {
