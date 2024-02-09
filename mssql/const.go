@@ -16,4 +16,5 @@ const (
   loginNameProp            = "login_name"
   permissionsProp          = "permissions"
   roleNameProp             = "role_name"
+	ownerNameProp            = "owner_name"
 )
