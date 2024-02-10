@@ -6,7 +6,7 @@ import (
   "github.com/betr-io/terraform-provider-mssql/mssql/model"
 )
 
-func (c *Connector) GetRole(ctx context.Context, database, roleName string) (*model.DatabaseRole, error) {
+func (c *Connector) GetDatabaseRole(ctx context.Context, database, roleName string) (*model.DatabaseRole, error) {
   var role model.DatabaseRole
 
   err := c.
@@ -27,7 +27,7 @@ func (c *Connector) GetRole(ctx context.Context, database, roleName string) (*mo
   return &role, nil
 }
 
-func (c *Connector) CreateRole(ctx context.Context, database, roleName string, ownerName string) error {
+func (c *Connector) CreateDatabaseRole(ctx context.Context, database, roleName string, ownerName string) error {
   cmd := `DECLARE @sql nvarchar(max);
           SET @sql = 'CREATE ROLE ' + QuoteName(@roleName)
           IF @ownerName != ''
@@ -44,7 +44,7 @@ func (c *Connector) CreateRole(ctx context.Context, database, roleName string, o
     )
 }
 
-func (c *Connector) DeleteRole(ctx context.Context, database, roleName string) error {
+func (c *Connector) DeleteDatabaseRole(ctx context.Context, database, roleName string) error {
   cmd := `DECLARE @sql nvarchar(max);
           SET @sql = 'DROP ROLE ' + QuoteName(@roleName);
           EXEC (@sql);`
@@ -56,7 +56,7 @@ func (c *Connector) DeleteRole(ctx context.Context, database, roleName string) e
     )
 }
 
-func (c *Connector) UpdateRole(ctx context.Context, database string, role *model.DatabaseRole) error {
+func (c *Connector) UpdateDatabaseRole(ctx context.Context, database string, role *model.DatabaseRole) error {
   cmd := `DECLARE @sql NVARCHAR(max)
           DECLARE @old_role_name NVARCHAR(max) = (SELECT name FROM [sys].[database_principals]  WHERE [type] = 'R' AND [principal_id] = @principalId)
           DECLARE @old_owner_name NVARCHAR(max) = (SELECT dp1.name AS ownerName FROM [sys].[database_principals] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp2.type = 'R' AND dp2.name = @roleName)

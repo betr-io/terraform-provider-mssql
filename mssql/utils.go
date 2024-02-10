@@ -30,7 +30,7 @@ func getDatabasePermissionsID(data *schema.ResourceData) string {
   return fmt.Sprintf("sqlserver://%s:%s/%s/%d/%s", host, port, database, principalId, "permissions")
 }
 
-func getRoleID(data *schema.ResourceData) string {
+func getDatabaseRoleID(data *schema.ResourceData) string {
   host := data.Get(serverProp + ".0.host").(string)
   port := data.Get(serverProp + ".0.port").(string)
   database := data.Get(databaseProp).(string)

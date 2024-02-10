@@ -145,3 +145,33 @@ resource "mssql_database_role" "example" {
   database = "master"
   role_name = "testrole"
 }
+
+resource "mssql_database_role" "example_authorization" {
+  server {
+    host = docker_container.mssql.ip_address
+    login {
+      username = local.local_username
+      password = local.local_password
+    }
+  }
+  database = "master"
+  role_name = "testrole"
+  owner_name = mssql_user.example.username
+}
+
+resource "mssql_database_permissions" "example" {
+  server {
+    host = docker_container.mssql.ip_address
+    login {
+      username = local.local_username
+      password = local.local_password
+    }
+  }
+  database     = "example"
+  principal_id = 1
+  permissions = [
+    "EXECUTE",
+    "UPDATE",
+    "INSERT",
+  ]
+}

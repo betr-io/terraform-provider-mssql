@@ -165,7 +165,7 @@ func (t testConnector) GetDatabasePermissions(database string, principalId int) 
 }
 
 func (t testConnector) GetRole(database string, roleName string) (*model.DatabaseRole, error) {
-  return t.c.(RoleConnector).GetRole(context.Background(), database, roleName)
+  return t.c.(DatabaseRoleConnector).GetDatabaseRole(context.Background(), database, roleName)
 }
 
 func (t testConnector) GetSystemUser() (string, error) {

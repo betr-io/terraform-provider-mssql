@@ -276,3 +276,48 @@ output "external" {
   }
   sensitive = true
 }
+
+resource "mssql_database_role" "example" {
+  server {
+    host = azurerm_mssql_server.sql_server.fully_qualified_domain_name
+    azure_login {
+      tenant_id     = var.tenant_id
+      client_id     = azuread_service_principal.sa.client_id
+      client_secret = azuread_service_principal_password.sa.value
+    }
+  }
+  database = "master"
+  role_name = "testrole"
+}
+
+resource "mssql_database_role" "example_authorization" {
+  server {
+    host = azurerm_mssql_server.sql_server.fully_qualified_domain_name
+    azure_login {
+      tenant_id     = var.tenant_id
+      client_id     = azuread_service_principal.sa.client_id
+      client_secret = azuread_service_principal_password.sa.value
+    }
+  }
+  database = "master"
+  role_name = "testrole"
+  owner_name = mssql_user.external.username
+}
+
+resource "mssql_database_permissions" "example" {
+  server {
+    host = azurerm_mssql_server.sql_server.fully_qualified_domain_name
+    azure_login {
+      tenant_id     = var.tenant_id
+      client_id     = azuread_service_principal.sa.client_id
+      client_secret = azuread_service_principal_password.sa.value
+    }
+  }
+  database     = "example"
+  principal_id = 1
+  permissions = [
+    "EXECUTE",
+    "UPDATE",
+    "INSERT",
+  ]
+}

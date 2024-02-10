@@ -36,7 +36,7 @@ func TestAccRole_Local_Basic_Create(t *testing.T) {
   })
 }
 
-func TestAccRole_Local_Basic_Create_with_Authorization(t *testing.T) {
+func TestAccRole_Local_Basic_Create_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -72,10 +72,10 @@ func TestAccRole_Azure_Basic_Create(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckRoleDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckRole(t, "azure_test_create", "azure", map[string]interface{}{"role_name": "test_role_create"}),
+        Config: testAccCheckRole(t, "azure_test_create", "azure", map[string]interface{}{"database":"testdb", "role_name": "test_role_create"}),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckRoleExists("mssql_database_role.test_create"),
-          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create", "database", "master"),
+          testAccCheckRoleExists("mssql_database_role.azure_test_create"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create", "database", "testdb"),
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_create", "role_name", "test_role_create"),
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_create", "server.#", "1"),
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_create", "server.0.host", os.Getenv("TF_ACC_SQL_SERVER")),
@@ -87,6 +87,35 @@ func TestAccRole_Azure_Basic_Create(t *testing.T) {
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_create", "server.0.login.#", "0"),
           resource.TestCheckResourceAttrSet("mssql_database_role.azure_test_create", "principal_id"),
           resource.TestCheckNoResourceAttr("mssql_database_role.azure_test_create", "password"),
+        ),
+      },
+    },
+  })
+}
+
+func TestAccRole_Azure_Basic_Create_owner(t *testing.T) {
+  resource.Test(t, resource.TestCase{
+    PreCheck:          func() { testAccPreCheck(t) },
+    ProviderFactories: testAccProviders,
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckRoleDestroy(state) },
+    Steps: []resource.TestStep{
+      {
+        Config: testAccCheckRole(t, "azure_test_create_auth", "azure", map[string]interface{}{"database": "testdb", "role_name": "test_role_auth", "owner_name": "db_user_role", "username": "db_user_role", "password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckRoleExists("mssql_database_role.azure_test_create_auth"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "database", "testdb"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "role_name", "test_role_auth"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "owner_name", "db_user_role"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "server.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "server.0.host", os.Getenv("TF_ACC_SQL_SERVER")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "server.0.port", "1433"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "server.0.azure_login.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "server.0.azure_login.0.tenant_id", os.Getenv("MSSQL_TENANT_ID")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "server.0.azure_login.0.client_id", os.Getenv("MSSQL_CLIENT_ID")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "server.0.azure_login.0.client_secret", os.Getenv("MSSQL_CLIENT_SECRET")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_create_auth", "server.0.login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_database_role.azure_test_create_auth", "principal_id"),
+          resource.TestCheckNoResourceAttr("mssql_database_role.azure_test_create_auth", "password"),
         ),
       },
     },
@@ -120,7 +149,7 @@ func TestAccRole_Local_Basic_Update(t *testing.T) {
   })
 }
 
-func TestAccRole_Local_Basic_Update_with_Authorization(t *testing.T) {
+func TestAccRole_Local_Basic_Update_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -147,7 +176,32 @@ func TestAccRole_Local_Basic_Update_with_Authorization(t *testing.T) {
   })
 }
 
-func TestAccRole_Local_Basic_Update_Role_and_Authorization(t *testing.T) {
+func TestAccRole_Local_Basic_Update_remove_owner(t *testing.T) {
+  resource.Test(t, resource.TestCase{
+    PreCheck:          func() { testAccPreCheck(t) },
+    IsUnitTest:        runLocalAccTests,
+    ProviderFactories: testAccProviders,
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckRoleDestroy(state) },
+    Steps: []resource.TestStep{
+      {
+        Config: testAccCheckRole(t, "local_test_update_rm_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner_rm", "owner_name": "db_user_owner_rm", "username": "db_user_owner_rm", "login_name": "db_login_owner_rm", "login_password": "valueIsH8kd$¡"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckRoleExists("mssql_database_role.local_test_update_rm_auth", Check{"owner_name", "==", "db_user_owner_rm"}),
+          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_rm_auth", "role_name", "test_role_owner_rm"),
+        ),
+      },
+      {
+        Config: testAccCheckRole(t, "local_test_update_rm_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner_rm", "username": "db_user_owner_rm", "login_name": "db_login_owner_rm", "login_password": "valueIsH8kd$¡"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckRoleExists("mssql_database_role.local_test_update_rm_auth", Check{"owner_name", "==", "dbo"}),
+          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_rm_auth", "role_name", "test_role_owner_rm"),
+        ),
+      },
+    },
+  })
+}
+
+func TestAccRole_Local_Basic_Update_Role_and_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -181,10 +235,10 @@ func TestAccRole_Azure_Basic_Update(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckRoleDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckRole(t, "azure_test_update", "azure", map[string]interface{}{"role_name": "test_role_pre"}),
+        Config: testAccCheckRole(t, "azure_test_update", "azure", map[string]interface{}{"database":"testdb", "role_name": "test_role_pre"}),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckRoleExists("mssql_database_role.test_update"),
-          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "database", "master"),
+          testAccCheckRoleExists("mssql_database_role.azure_test_update"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "database", "testdb"),
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "role_name", "test_role_pre"),
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "server.#", "1"),
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "server.0.host", os.Getenv("TF_ACC_SQL_SERVER")),
@@ -199,10 +253,10 @@ func TestAccRole_Azure_Basic_Update(t *testing.T) {
         ),
       },
       {
-        Config: testAccCheckRole(t, "azure_test_update", "azure", map[string]interface{}{"role_name": "test_role_post"}),
+        Config: testAccCheckRole(t, "azure_test_update", "azure", map[string]interface{}{"database":"testdb", "role_name": "test_role_post"}),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckRoleExists("mssql_database_role.test_update"),
-          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "database", "master"),
+          testAccCheckRoleExists("mssql_database_role.azure_test_update"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "database", "testdb"),
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "role_name", "test_role_post"),
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "server.#", "1"),
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "server.0.host", os.Getenv("TF_ACC_SQL_SERVER")),
@@ -214,6 +268,54 @@ func TestAccRole_Azure_Basic_Update(t *testing.T) {
           resource.TestCheckResourceAttr("mssql_database_role.azure_test_update", "server.0.login.#", "0"),
           resource.TestCheckResourceAttrSet("mssql_database_role.azure_test_update", "principal_id"),
           resource.TestCheckNoResourceAttr("mssql_database_role.azure_test_update", "password"),
+        ),
+      },
+    },
+  })
+}
+
+func TestAccRole_Azure_Basic_Update_owner(t *testing.T) {
+  resource.Test(t, resource.TestCase{
+    PreCheck:          func() { testAccPreCheck(t) },
+    ProviderFactories: testAccProviders,
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckRoleDestroy(state) },
+    Steps: []resource.TestStep{
+      {
+        Config: testAccCheckRole(t, "azure_test_update_owner", "azure", map[string]interface{}{"database": "testdb", "role_name": "test_role_auth", "owner_name": "db_user_role", "username": "db_user_role", "password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckRoleExists("mssql_database_role.azure_test_update_owner"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "database", "testdb"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "role_name", "test_role_auth"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "owner_name", "db_user_role"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.host", os.Getenv("TF_ACC_SQL_SERVER")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.port", "1433"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.azure_login.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.azure_login.0.tenant_id", os.Getenv("MSSQL_TENANT_ID")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.azure_login.0.client_id", os.Getenv("MSSQL_CLIENT_ID")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.azure_login.0.client_secret", os.Getenv("MSSQL_CLIENT_SECRET")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_database_role.azure_test_update_owner", "principal_id"),
+          resource.TestCheckNoResourceAttr("mssql_database_role.azure_test_update_owner", "password"),
+        ),
+      },
+      {
+        Config: testAccCheckRole(t, "azure_test_update_owner", "azure", map[string]interface{}{"database": "testdb", "role_name": "test_role_auth", "username": "db_user_role", "password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckRoleExists("mssql_database_role.azure_test_update_owner"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "database", "testdb"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "role_name", "test_role_auth"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "owner_name", "dbo"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.host", os.Getenv("TF_ACC_SQL_SERVER")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.port", "1433"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.azure_login.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.azure_login.0.tenant_id", os.Getenv("MSSQL_TENANT_ID")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.azure_login.0.client_id", os.Getenv("MSSQL_CLIENT_ID")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.azure_login.0.client_secret", os.Getenv("MSSQL_CLIENT_SECRET")),
+          resource.TestCheckResourceAttr("mssql_database_role.azure_test_update_owner", "server.0.login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_database_role.azure_test_update_owner", "principal_id"),
+          resource.TestCheckNoResourceAttr("mssql_database_role.azure_test_update_owner", "password"),
         ),
       },
     },
