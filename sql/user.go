@@ -270,9 +270,10 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
 func (c *Connector) DeleteUser(ctx context.Context, database, username string) error {
   cmd := `DECLARE @stmt nvarchar(max)
           DECLARE @sql NVARCHAR(max)
+          DECLARE @user_name NVARCHAR(max) = (SELECT USER_NAME())
           DECLARE @roleNameowner NVARCHAR(max) = (SELECT dp2.name FROM [sys].[database_principals] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = @username)
           SET @sql =  'IF EXISTS (SELECT 1 FROM ' + QuoteName(@database) + '.[sys].[database_principals] dp1 INNER JOIN ' + QuoteName(@database) + '.[sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = ' + QuoteName(@username, '''') + ') ' +
-                      'ALTER AUTHORIZATION ON ROLE:: [' + @roleNameowner + '] TO [dbo]'
+                      'ALTER AUTHORIZATION ON ROLE:: [' + @roleNameowner + '] TO [' + @user_name + ']'
           EXEC sp_executesql @sql;
           SET @stmt = 'IF EXISTS (SELECT 1 FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE [name] = ' + QuoteName(@username, '''') + ') ' +
                       'DROP USER ' + QuoteName(@username)
