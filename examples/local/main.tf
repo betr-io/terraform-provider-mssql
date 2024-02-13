@@ -154,8 +154,8 @@ resource "mssql_database_role" "example_authorization" {
       password = local.local_password
     }
   }
-  database = "master"
-  role_name = "testrole"
+  database = "example-db"
+  role_name = "example-role"
   owner_name = mssql_user.example.username
 }
 

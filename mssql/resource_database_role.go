@@ -9,6 +9,10 @@ import (
   "github.com/pkg/errors"
 )
 
+const ownerIdProp   = "owning_principal_id"
+const ownerNameProp = "owner_name"
+const defaultOwnerNameDefault = "dbo"
+
 func resourceDatabaseRole() *schema.Resource {
   return &schema.Resource{
     CreateContext: resourceDatabaseRoleCreate,
@@ -41,7 +45,14 @@ func resourceDatabaseRole() *schema.Resource {
       ownerNameProp: {
         Type:     schema.TypeString,
         Optional: true,
-        Default:  "dbo",
+        Default:  defaultOwnerNameDefault,
+        DiffSuppressFunc: func(k, old, new string, data *schema.ResourceData) bool {
+          return (old == "" && new == defaultOwnerNameDefault) || (old == defaultOwnerNameDefault && new == "")
+        },
+      },
+      ownerIdProp: {
+        Type:     schema.TypeInt,
+        Computed: true,
       },
       principalIdProp: {
         Type:     schema.TypeInt,
@@ -57,7 +68,7 @@ func resourceDatabaseRole() *schema.Resource {
 type DatabaseRoleConnector interface {
   CreateDatabaseRole(ctx context.Context, database string, roleName string, ownerName string) error
   GetDatabaseRole(ctx context.Context, database, roleName string) (*model.DatabaseRole, error)
-  UpdateDatabaseRole(ctx context.Context, database string, role *model.DatabaseRole) error
+  UpdateDatabaseRole(ctx context.Context, database string, roleId int, roleName string, ownerName string) error
   DeleteDatabaseRole(ctx context.Context, database, roleName string) error
 }
 
@@ -81,12 +92,17 @@ func resourceDatabaseRoleRead(ctx context.Context, data *schema.ResourceData, me
   if role == nil {
     logger.Info().Msgf("role [%s].[%s] does not exist", database, roleName)
     data.SetId("")
-    return nil
   } else {
     if err = data.Set(principalIdProp, role.RoleID); err != nil {
       return diag.FromErr(err)
     }
+    if err = data.Set(roleNameProp, role.RoleName); err != nil {
+      return diag.FromErr(err)
+    }
     if err = data.Set(ownerNameProp, role.OwnerName); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(ownerIdProp, role.OwnerId); err != nil {
       return diag.FromErr(err)
     }
   }
@@ -158,13 +174,7 @@ func resourceDatabaseRoleUpdate(ctx context.Context, data *schema.ResourceData, 
     return diag.FromErr(err)
   }
 
-  role := &model.DatabaseRole{
-    RoleID:   int(roleId),
-    RoleName: roleName,
-    OwnerName: ownerName,
-  }
-
-  if err = connector.UpdateDatabaseRole(ctx, database, role); err != nil {
+  if err = connector.UpdateDatabaseRole(ctx, database, roleId, roleName, ownerName); err != nil {
     return diag.FromErr(errors.Wrapf(err, "unable to update role [%s].[%s]", database, roleName))
   }
 

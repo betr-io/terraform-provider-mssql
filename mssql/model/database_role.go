@@ -6,4 +6,5 @@ type DatabaseRole struct {
   RoleID    int
   RoleName  string
 	OwnerName string
+	OwnerId   int
 }
