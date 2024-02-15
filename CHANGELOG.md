@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support to create the mssql login with SID
 - New Data source mssql_login
 - New resource database permission
-- New resource mssql role
+- New resource database role
+- New resource database schema
 
 
 ## [0.3.0] - 2023-12-29
