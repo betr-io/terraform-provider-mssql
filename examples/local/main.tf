@@ -175,3 +175,28 @@ resource "mssql_database_permissions" "example" {
     "INSERT",
   ]
 }
+
+resource "mssql_database_schema" "example" {
+  server {
+    host = docker_container.mssql.ip_address
+    login {
+      username = local.local_username
+      password = local.local_password
+    }
+  }
+  database = "master"
+  schema_name = "testschema"
+}
+
+resource "mssql_database_schema" "example_authorization" {
+  server {
+    host = docker_container.mssql.ip_address
+    login {
+      username = local.local_username
+      password = local.local_password
+    }
+  }
+  database = "example-db"
+  schema_name = "example-schema"
+  owner_name = mssql_user.example.username
+}

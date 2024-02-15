@@ -9,10 +9,6 @@ import (
   "github.com/pkg/errors"
 )
 
-const ownerIdProp   = "owning_principal_id"
-const ownerNameProp = "owner_name"
-const defaultOwnerNameDefault = "dbo"
-
 func resourceDatabaseRole() *schema.Resource {
   return &schema.Resource{
     CreateContext: resourceDatabaseRoleCreate,

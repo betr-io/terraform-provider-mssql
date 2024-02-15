@@ -18,7 +18,7 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
                           '  SELECT member_principal_id, drm.role_principal_id FROM [sys].[database_role_members] drm' +
                           '    INNER JOIN CTE_Roles cr ON drm.member_principal_id = cr.role_principal_id' +
                           ') ' +
-                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(1000), p.sid, 1) AS sidStr, '''', COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
+                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(85), p.sid, 1) AS sidStr, '''', COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
                           'FROM [sys].[database_principals] p' +
                           '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
                           'WHERE p.name = ' + QuoteName(@username, '''') + ' ' +
@@ -33,7 +33,7 @@ func (c *Connector) GetUser(ctx context.Context, database, username string) (*mo
                           '  SELECT member_principal_id, drm.role_principal_id FROM ' + QuoteName(@database) + '.[sys].[database_role_members] drm' +
                           '    INNER JOIN CTE_Roles cr ON drm.member_principal_id = cr.role_principal_id' +
                           ') ' +
-                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(1000), p.sid, 1) AS sidStr, COALESCE(sl.name, ''''), COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
+                          'SELECT p.principal_id, p.name, p.authentication_type_desc, COALESCE(p.default_schema_name, ''''), COALESCE(p.default_language_name, ''''), p.sid, CONVERT(VARCHAR(85), p.sid, 1) AS sidStr, COALESCE(sl.name, ''''), COALESCE(STRING_AGG(USER_NAME(r.role_principal_id), '',''), '''') ' +
                           'FROM ' + QuoteName(@database) + '.[sys].[database_principals] p' +
                           '  LEFT JOIN CTE_Roles r ON p.principal_id = r.principal_id ' +
                           '  LEFT JOIN [master].[sys].[sql_logins] sl ON p.sid = sl.sid ' +
@@ -269,12 +269,42 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
 
 func (c *Connector) DeleteUser(ctx context.Context, database, username string) error {
   cmd := `DECLARE @stmt nvarchar(max)
-          DECLARE @sql NVARCHAR(max)
           DECLARE @user_name NVARCHAR(max) = (SELECT USER_NAME())
-          DECLARE @roleNameowner NVARCHAR(max) = (SELECT dp2.name FROM [sys].[database_principals] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = @username)
-          SET @sql =  'IF EXISTS (SELECT 1 FROM ' + QuoteName(@database) + '.[sys].[database_principals] dp1 INNER JOIN ' + QuoteName(@database) + '.[sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = ' + QuoteName(@username, '''') + ') ' +
-                      'ALTER AUTHORIZATION ON ROLE:: [' + @roleNameowner + '] TO [' + @user_name + ']'
-          EXEC sp_executesql @sql;
+
+          IF EXISTS (SELECT 1 FROM [sys].[database_principals] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = @username)
+            BEGIN
+              DECLARE @role nvarchar(max)
+              DECLARE role_cur CURSOR FOR SELECT dp2.name FROM [sys].[database_principals] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = @username
+              OPEN role_cur
+              FETCH NEXT FROM role_cur INTO @role
+              WHILE @@FETCH_STATUS = 0
+                BEGIN
+                  DECLARE @rolesql nvarchar(max)
+                  SET @rolesql = 'ALTER AUTHORIZATION ON ROLE:: [' + @role + '] TO [' + @user_name + ']'
+                  EXEC (@rolesql)
+                  FETCH NEXT FROM role_cur INTO @role
+                END
+              CLOSE role_cur
+              DEALLOCATE role_cur
+            END
+
+          IF EXISTS (SELECT 1 FROM [sys].[schemas] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.principal_id AND dp2.name = @username)
+            BEGIN
+              DECLARE @schema nvarchar(max)
+              DECLARE schema_cur CURSOR FOR SELECT dp1.name FROM [sys].[schemas] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.principal_id AND dp2.name = @username
+              OPEN schema_cur
+              FETCH NEXT FROM schema_cur INTO @schema
+              WHILE @@FETCH_STATUS = 0
+                BEGIN
+                  DECLARE @schemasql nvarchar(max)
+                  SET @schemasql = 'ALTER AUTHORIZATION ON SCHEMA:: [' + @schema + '] TO [' + @user_name + ']'
+                  EXEC (@schemasql)
+                  FETCH NEXT FROM schema_cur INTO @schema
+                END
+              CLOSE schema_cur
+              DEALLOCATE schema_cur
+            END
+
           SET @stmt = 'IF EXISTS (SELECT 1 FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE [name] = ' + QuoteName(@username, '''') + ') ' +
                       'DROP USER ' + QuoteName(@username)
           EXEC (@stmt)`

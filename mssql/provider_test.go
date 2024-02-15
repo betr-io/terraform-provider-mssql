@@ -63,6 +63,7 @@ type TestConnector interface {
   GetUser(database, name string) (*model.User, error)
   GetDatabasePermissions(database string, principalId int) (*model.DatabasePermissions, error)
   GetDatabaseRole(database, name string) (*model.DatabaseRole, error)
+  GetDatabaseSchema(database, name string) (*model.DatabaseSchema, error)
   GetSystemUser() (string, error)
   GetCurrentUser(database string) (string, string, error)
 }
@@ -166,6 +167,10 @@ func (t testConnector) GetDatabasePermissions(database string, principalId int) 
 
 func (t testConnector) GetDatabaseRole(database string, roleName string) (*model.DatabaseRole, error) {
   return t.c.(DatabaseRoleConnector).GetDatabaseRole(context.Background(), database, roleName)
+}
+
+func (t testConnector) GetDatabaseSchema(database string, schemaName string) (*model.DatabaseSchema, error) {
+  return t.c.(DatabaseSchemaConnector).GetDatabaseSchema(context.Background(), database, schemaName)
 }
 
 func (t testConnector) GetSystemUser() (string, error) {
