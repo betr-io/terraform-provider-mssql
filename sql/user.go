@@ -269,17 +269,42 @@ func (c *Connector) UpdateUser(ctx context.Context, database string, user *model
 
 func (c *Connector) DeleteUser(ctx context.Context, database, username string) error {
   cmd := `DECLARE @stmt nvarchar(max)
-          DECLARE @sqlrole NVARCHAR(max)
-          DECLARE @sqlschema NVARCHAR(max)
           DECLARE @user_name NVARCHAR(max) = (SELECT USER_NAME())
-          DECLARE @roleName NVARCHAR(max) = (SELECT dp2.name FROM [sys].[database_principals] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = @username)
-          DECLARE @schemaName NVARCHAR(max) = (SELECT dp1.name FROM [sys].[schemas] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.principal_id AND dp2.name = @username)
-          SET @sqlrole =  'IF EXISTS (SELECT 1 FROM ' + QuoteName(@database) + '.[sys].[database_principals] dp1 INNER JOIN ' + QuoteName(@database) + '.[sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = ' + QuoteName(@username, '''') + ') ' +
-                      'ALTER AUTHORIZATION ON ROLE:: [' + @roleName + '] TO [' + @user_name + ']'
-          EXEC sp_executesql @sqlrole;
-          SET @sqlschema =  'IF EXISTS (SELECT 1 FROM [sys].[schemas] dp1 INNER JOIN ' + QuoteName(@database) + '.[sys].[database_principals] dp2 ON dp1.principal_id = dp2.principal_id AND dp2.name = ' + QuoteName(@username, '''') + ') ' +
-                      'ALTER AUTHORIZATION ON SCHEMA:: [' + @schemaName + '] TO [' + @user_name + ']'
-          EXEC sp_executesql @sqlschema;
+
+          IF EXISTS (SELECT 1 FROM [sys].[database_principals] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = @username)
+            BEGIN
+              DECLARE @role nvarchar(max)
+              DECLARE role_cur CURSOR FOR SELECT dp2.name FROM [sys].[database_principals] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.owning_principal_id AND dp1.name = @username
+              OPEN role_cur
+              FETCH NEXT FROM role_cur INTO @role
+              WHILE @@FETCH_STATUS = 0
+                BEGIN
+                  DECLARE @rolesql nvarchar(max)
+                  SET @rolesql = 'ALTER AUTHORIZATION ON ROLE:: [' + @role + '] TO [' + @user_name + ']'
+                  EXEC (@rolesql)
+                  FETCH NEXT FROM role_cur INTO @role
+                END
+              CLOSE role_cur
+              DEALLOCATE role_cur
+            END
+
+          IF EXISTS (SELECT 1 FROM [sys].[schemas] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.principal_id AND dp2.name = @username)
+            BEGIN
+              DECLARE @schema nvarchar(max)
+              DECLARE schema_cur CURSOR FOR SELECT dp1.name FROM [sys].[schemas] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.principal_id AND dp2.name = @username
+              OPEN schema_cur
+              FETCH NEXT FROM schema_cur INTO @schema
+              WHILE @@FETCH_STATUS = 0
+                BEGIN
+                  DECLARE @schemasql nvarchar(max)
+                  SET @schemasql = 'ALTER AUTHORIZATION ON SCHEMA:: [' + @schema + '] TO [' + @user_name + ']'
+                  EXEC (@schemasql)
+                  FETCH NEXT FROM schema_cur INTO @schema
+                END
+              CLOSE schema_cur
+              DEALLOCATE schema_cur
+            END
+
           SET @stmt = 'IF EXISTS (SELECT 1 FROM ' + QuoteName(@database) + '.[sys].[database_principals] WHERE [name] = ' + QuoteName(@username, '''') + ') ' +
                       'DROP USER ' + QuoteName(@username)
           EXEC (@stmt)`

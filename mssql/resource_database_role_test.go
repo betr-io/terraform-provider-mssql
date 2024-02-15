@@ -203,7 +203,7 @@ func TestAccRole_Local_Basic_Update_remove_owner(t *testing.T) {
   })
 }
 
-func TestAccRole_Local_Basic_Update_Role_and_owner(t *testing.T) {
+func TestAccRole_Local_Basic_Update_role_and_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -391,7 +391,7 @@ func testAccCheckRoleDestroy(state *terraform.State) error {
     }
 
     database := rs.Primary.Attributes["database"]
-    roleName := rs.Primary.Attributes["username"]
+    roleName := rs.Primary.Attributes["role_name"]
     role, err := connector.GetDatabaseRole(database, roleName)
     if role != nil {
       return fmt.Errorf("role still exists")
