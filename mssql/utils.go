@@ -38,6 +38,14 @@ func getDatabaseRoleID(data *schema.ResourceData) string {
   return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, roleName)
 }
 
+func getDatabaseSchemaID(data *schema.ResourceData) string {
+  host := data.Get(serverProp + ".0.host").(string)
+  port := data.Get(serverProp + ".0.port").(string)
+  database := data.Get(databaseProp).(string)
+  schemaName := data.Get(schemaNameProp).(string)
+  return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, schemaName)
+}
+
 func loggerFromMeta(meta interface{}, resource, function string) zerolog.Logger {
   return meta.(model.Provider).ResourceLogger(resource, function)
 }

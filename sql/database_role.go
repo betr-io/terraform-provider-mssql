@@ -40,27 +40,13 @@ func (c *Connector) GetDatabaseRole(ctx context.Context, database, roleName stri
 
 func (c *Connector) CreateDatabaseRole(ctx context.Context, database, roleName string, ownerName string) error {
   cmd := `DECLARE @sql nvarchar(max);
-          IF @@VERSION LIKE 'Microsoft SQL Azure%' AND @database = 'master'
+          IF @ownerName = 'dbo' OR @ownerName = ''
             BEGIN
-              IF @ownerName = 'dbo' OR @ownerName = ''
-                BEGIN
-                  SET @sql = 'CREATE ROLE ' + QuoteName(@roleName)
-                END
-              ELSE
-                BEGIN
-                  SET @sql = 'CREATE ROLE ' + QuoteName(@roleName) + ' AUTHORIZATION ' + QuoteName(@ownerName)
-                END
+              SET @sql = 'CREATE ROLE ' + QuoteName(@roleName)
             END
-          IF @@VERSION NOT LIKE 'Microsoft SQL Azure%'
+          ELSE
             BEGIN
-              IF @ownerName = 'dbo' OR @ownerName = ''
-                BEGIN
-                  SET @sql = 'CREATE ROLE ' + QuoteName(@roleName)
-                END
-              ELSE
-                BEGIN
-                  SET @sql = 'CREATE ROLE ' + QuoteName(@roleName) + ' AUTHORIZATION ' + QuoteName(@ownerName)
-                END
+              SET @sql = 'CREATE ROLE ' + QuoteName(@roleName) + ' AUTHORIZATION ' + QuoteName(@ownerName)
             END
           EXEC (@sql);`
 

@@ -9,7 +9,7 @@ import (
 func (c *Connector) GetLogin(ctx context.Context, name string) (*model.Login, error) {
   var login model.Login
   err := c.QueryRowContext(ctx,
-    "SELECT principal_id, name, CONVERT(VARCHAR(1000), [sid], 1), default_database_name, default_language_name FROM [master].[sys].[sql_logins] WHERE [name] = @name",
+    "SELECT principal_id, name, CONVERT(VARCHAR(85), [sid], 1), default_database_name, default_language_name FROM [master].[sys].[sql_logins] WHERE [name] = @name",
     func(r *sql.Row) error {
       return r.Scan(&login.PrincipalID, &login.LoginName, &login.SIDStr, &login.DefaultDatabase, &login.DefaultLanguage)
     },
@@ -30,7 +30,7 @@ func (c *Connector) CreateLogin(ctx context.Context, name, password, sid, defaul
                      'WITH PASSWORD = ' + QuoteName(@password, '''')
           IF NOT @sid = ''
             BEGIN
-              SET @sql = @sql + ', SID = ' + CONVERT(VARCHAR(1000), @sid, 1)
+              SET @sql = @sql + ', SID = ' + CONVERT(VARCHAR(85), @sid, 1)
             END
           IF @@VERSION NOT LIKE 'Microsoft SQL Azure%'
             BEGIN
