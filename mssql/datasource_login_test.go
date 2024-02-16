@@ -62,29 +62,6 @@ func TestAccDataLogin_Azure_Basic(t *testing.T) {
   })
 }
 
-func testAccDataLoginDestroy(state *terraform.State) error {
-  for _, rs := range state.RootModule().Resources {
-    if rs.Type != "mssql_login" {
-      continue
-    }
-
-    connector, err := getTestConnector(rs.Primary.Attributes)
-    if err != nil {
-      return err
-    }
-
-    loginName := rs.Primary.Attributes["login_name"]
-    login, err := connector.GetLogin(loginName)
-    if login != nil {
-      return fmt.Errorf("login still exists")
-    }
-    if err != nil {
-      return fmt.Errorf("expected no error, got %s", err)
-    }
-  }
-  return nil
-}
-
 func testAccDataLogin(t *testing.T, name string, azure bool, data map[string]interface{}) string {
   text := `resource "mssql_login" "{{ .name }}" {
               server {
@@ -117,4 +94,27 @@ func testAccDataLogin(t *testing.T, name string, azure bool, data map[string]int
     t.Fatalf("%s", err)
   }
   return res
+}
+
+func testAccDataLoginDestroy(state *terraform.State) error {
+  for _, rs := range state.RootModule().Resources {
+    if rs.Type != "mssql_login" {
+      continue
+    }
+
+    connector, err := getTestConnector(rs.Primary.Attributes)
+    if err != nil {
+      return err
+    }
+
+    loginName := rs.Primary.Attributes["login_name"]
+    login, err := connector.GetLogin(loginName)
+    if login != nil {
+      return fmt.Errorf("login still exists")
+    }
+    if err != nil {
+      return fmt.Errorf("expected no error, got %s", err)
+    }
+  }
+  return nil
 }

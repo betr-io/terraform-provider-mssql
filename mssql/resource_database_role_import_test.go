@@ -6,7 +6,7 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccRole_Local_BasicImport(t *testing.T) {
+func TestAccDatabaseRole_Local_BasicImport(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
