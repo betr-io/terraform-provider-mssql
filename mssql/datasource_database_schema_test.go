@@ -42,9 +42,9 @@ func TestAccDataDatabaseSchema_Azure_Basic(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckDataSchemaDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckDataSchema(t, "data_azure_test", "azure", map[string]interface{}{"database":"testdb", "schema_name": "data_test_schema"}),
+        Config: testAccCheckDataSchema(t, "data_azure_test", "azure", map[string]interface{}{"database": "testdb", "schema_name": "data_test_schema"}),
         Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.mssql_database_schema.data_azure_test", "id", "sqlserver://"+os.Getenv("TF_ACC_SQL_SERVER")+":1433/testdb/data_test_schema"),
+          resource.TestCheckResourceAttr("data.mssql_database_schema.data_azure_test", "id", "sqlserver://"+os.Getenv("TF_ACC_SQL_SERVER")+":1433/testdb/data_test_schema"),
           resource.TestCheckResourceAttr("data.mssql_database_schema.data_azure_test", "database", "testdb"),
           resource.TestCheckResourceAttr("data.mssql_database_schema.data_azure_test", "schema_name", "data_test_schema"),
           resource.TestCheckResourceAttr("data.mssql_database_schema.data_azure_test", "server.#", "1"),
@@ -55,7 +55,7 @@ func TestAccDataDatabaseSchema_Azure_Basic(t *testing.T) {
           resource.TestCheckResourceAttr("data.mssql_database_schema.data_azure_test", "server.0.azure_login.0.client_id", os.Getenv("MSSQL_CLIENT_ID")),
           resource.TestCheckResourceAttr("data.mssql_database_schema.data_azure_test", "server.0.azure_login.0.client_secret", os.Getenv("MSSQL_CLIENT_SECRET")),
           resource.TestCheckResourceAttr("data.mssql_database_schema.data_azure_test", "server.0.login.#", "0"),
-          resource.TestCheckResourceAttrSet("data.mssql_database_schema.azure_test_create", "schema_id"),
+          resource.TestCheckResourceAttrSet("data.mssql_database_schema.data_azure_test", "schema_id"),
         ),
       },
     },
@@ -72,13 +72,13 @@ func testAccCheckDataSchema(t *testing.T, name string, login string, data map[st
              schema_name = "{{ .schema_name }}"
            }
            data "mssql_database_schema" "{{ .name }}" {
-            server {
-              host = "{{ .host }}"
-              {{if eq .login "fedauth"}}azuread_default_chain_auth {}{{ else if eq .login "msi"}}azuread_managed_identity_auth {}{{ else if eq .login "azure" }}azure_login {}{{ else }}login {}{{ end }}
-            }
-            {{ with .database }}database = "{{ . }}"{{ end }}
-            schema_name = "{{ .schema_name }}"
-            depends_on = [mssql_database_schema.{{ .name }}]
+             server {
+               host = "{{ .host }}"
+               {{if eq .login "fedauth"}}azuread_default_chain_auth {}{{ else if eq .login "msi"}}azuread_managed_identity_auth {}{{ else if eq .login "azure" }}azure_login {}{{ else }}login {}{{ end }}
+             }
+             {{ with .database }}database = "{{ . }}"{{ end }}
+             schema_name = "{{ .schema_name }}"
+             depends_on = [mssql_database_schema.{{ .name }}]
            }`
 
   data["name"] = name

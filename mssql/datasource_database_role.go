@@ -9,7 +9,7 @@ import (
 
 func dataSourceDatabaseRole() *schema.Resource {
   return &schema.Resource{
-    ReadContext:   dataSourceDatabaseRoleRead,
+    ReadContext: dataSourceDatabaseRoleRead,
     Schema: map[string]*schema.Schema{
       serverProp: {
         Type:     schema.TypeList,
