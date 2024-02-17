@@ -28,11 +28,11 @@ func dataSourceDatabaseSchema() *schema.Resource {
       schemaNameProp: {
         Type:        schema.TypeString,
         Required: true,
-				ForceNew: true,
+        ForceNew: true,
       },
       ownerNameProp: {
         Type:     schema.TypeString,
-				Computed: true,
+        Computed: true,
       },
       ownerIdProp: {
         Type:     schema.TypeInt,
@@ -81,7 +81,7 @@ func dataSourceDatabaseSchemaRead(ctx context.Context, data *schema.ResourceData
     if err = data.Set(ownerIdProp, sqlschema.OwnerId); err != nil {
       return diag.FromErr(err)
     }
-		data.SetId(getDatabaseSchemaID(data))
+    data.SetId(getDatabaseSchemaID(data))
   }
 
   logger.Info().Msgf("read role [%s].[%s]", database, schemaName)

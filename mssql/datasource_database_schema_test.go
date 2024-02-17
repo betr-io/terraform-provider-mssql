@@ -110,8 +110,8 @@ func testAccCheckDataSchemaDestroy(state *terraform.State) error {
 
     database := rs.Primary.Attributes["database"]
     schemaName := rs.Primary.Attributes["schema_name"]
-    role, err := connector.GetDatabaseSchema(database, schemaName)
-    if role != nil {
+    sqlschema, err := connector.GetDatabaseSchema(database, schemaName)
+    if sqlschema != nil {
       return fmt.Errorf("schema still exists")
     }
     if err != nil {

@@ -52,8 +52,9 @@ func Provider(factory model.ConnectorFactory) *schema.Provider {
     },
     DataSourcesMap: map[string]*schema.Resource{
       "mssql_login": dataSourceLogin(),
-			"mssql_database_role": dataSourceDatabaseRole(),
-			"mssql_database_schema": dataSourceDatabaseSchema(),
+      "mssql_user": dataSourceUser(),
+      "mssql_database_role": dataSourceDatabaseRole(),
+      "mssql_database_schema": dataSourceDatabaseSchema(),
     },
     ConfigureContextFunc: func(ctx context.Context, data *schema.ResourceData) (interface{}, diag.Diagnostics) {
       return providerConfigure(ctx, data, factory)
