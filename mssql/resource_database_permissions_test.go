@@ -3,7 +3,6 @@ package mssql
 import (
   "fmt"
   "os"
-  "strconv"
   "testing"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
   "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -96,7 +95,7 @@ func testAccCheckDatabasePermissions(t *testing.T, name string, login string, da
               {{if eq .login "fedauth"}}azuread_default_chain_auth {}{{ else if eq .login "msi"}}azuread_managed_identity_auth {}{{ else if eq .login "azure" }}azure_login {}{{ else }}login {}{{ end }}
             }
             database     = "{{ .database }}"
-            principal_id = mssql_user.{{ .name }}.principal_id
+            username = mssql_user.{{ .name }}.username
             permissions  = {{ .permissions }}
            }`
   data["name"] = name
@@ -132,14 +131,9 @@ func testAccCheckDatabasePermissionsDestroy(state *terraform.State) error {
     }
 
     database := rs.Primary.Attributes["database"]
-    principalId := rs.Primary.Attributes["principal_id"]
+    username := rs.Primary.Attributes["username"]
 
-    var pId int
-    if pId, err := strconv.Atoi(principalId); err != nil {
-      return fmt.Errorf("pId=%d, type: %T\n", pId, pId)
-    }
-
-    permissions, err := connector.GetDatabasePermissions(database, pId)
+    permissions, err := connector.GetDatabasePermissions(database, username)
     if permissions != nil {
       return fmt.Errorf("permissions still exist")
     }
@@ -168,14 +162,9 @@ func testAccCheckDatabasePermissionsExist(resource string, checks ...Check) reso
     }
 
     database := rs.Primary.Attributes["database"]
-    principalId := rs.Primary.Attributes["principal_id"]
+    username := rs.Primary.Attributes["username"]
 
-    var pId int
-    if pId, err := strconv.Atoi(principalId); err != nil {
-      return fmt.Errorf("pId=%d, type: %T\n", pId, pId)
-    }
-
-    permissions, err := connector.GetDatabasePermissions(database, pId)
+    permissions, err := connector.GetDatabasePermissions(database, username)
     if permissions == nil {
       return fmt.Errorf("permissions do not exist")
     }
@@ -186,8 +175,8 @@ func testAccCheckDatabasePermissionsExist(resource string, checks ...Check) reso
     var actual interface{}
     for _, check := range checks {
       switch check.name {
-      case "principal_id":
-        actual = permissions.PrincipalID
+      case "username":
+        actual = permissions.UserName
       case "permission":
         actual = permissions.Permissions
       case "database":

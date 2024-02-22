@@ -3,25 +3,24 @@ package sql
 import (
   "context"
   "database/sql"
-  "fmt"
   "strings"
   "github.com/betr-io/terraform-provider-mssql/mssql/model"
 )
 
-func (c *Connector) GetDatabasePermissions(ctx context.Context, database string, principalId int) (*model.DatabasePermissions, error) {
+func (c *Connector) GetDatabasePermissions(ctx context.Context, database string, username string) (*model.DatabasePermissions, error) {
   cmd := `DECLARE @stmt nvarchar(max)
           SET @stmt = 'SELECT DISTINCT pr.principal_id, pr.name, ' +
                       'pe.permission_name ' +
-                      'FROM sys.database_principals AS pr INNER JOIN sys.database_permissions AS pe ' +
+                      'FROM sys.database_principals AS pr LEFT JOIN sys.database_permissions AS pe ' +
                       'ON pe.grantee_principal_id = pr.principal_id ' +
-                      'WHERE pr.principal_id = ' + @principalId
+                      'WHERE pr.name = ' + QuoteName(@username, '''')
           EXEC (@stmt)`
   var (
     permissions []string
   )
 
   permsModel := model.DatabasePermissions{
-    PrincipalID:  principalId,
+    UserName:  username,
     DatabaseName: database,
     Permissions:  make([]string, 0),
   }
@@ -46,7 +45,7 @@ func (c *Connector) GetDatabasePermissions(ctx context.Context, database string,
         return nil
       },
       sql.Named("database", database),
-      sql.Named("principalId", fmt.Sprintf("%d", principalId)),
+      sql.Named("username", username),
     )
   if err != nil {
     if err == sql.ErrNoRows {
@@ -65,15 +64,13 @@ func (c *Connector) GetDatabasePermissions(ctx context.Context, database string,
 
 func (c *Connector) CreateDatabasePermissions(ctx context.Context, permissions *model.DatabasePermissions) error {
   cmd := `declare @stmt nvarchar(max)
-          DECLARE @user_name varchar(80)
-          SET @user_name = (SELECT pr.name FROM sys.database_principals AS pr WHERE pr.principal_id = @principalId)
           DECLARE perm_cur CURSOR FOR SELECT value FROM String_Split(@permissions, ',')
           DECLARE @permission_name nvarchar(max)
           OPEN perm_cur
           FETCH NEXT FROM perm_cur INTO @permission_name
           WHILE @@FETCH_STATUS = 0
             BEGIN
-              SET @stmt = 'GRANT ' + @permission_name + ' TO ' + QuoteName(@user_name)
+              SET @stmt = 'GRANT ' + @permission_name + ' TO ' + QuoteName(@username)
               EXEC (@stmt)
               FETCH NEXT FROM perm_cur INTO @permission_name
             END
@@ -84,22 +81,20 @@ func (c *Connector) CreateDatabasePermissions(ctx context.Context, permissions *
     setDatabase(&permissions.DatabaseName).
     ExecContext(ctx, cmd,
       // sql.Named("database_name", permissions.DatabaseName),
-      sql.Named("principalId", fmt.Sprintf("%d", permissions.PrincipalID)),
+      sql.Named("username", permissions.UserName),
       sql.Named("permissions", strings.Join(permissions.Permissions, ",")),
     )
 }
 
 func (c *Connector) DeleteDatabasePermissions(ctx context.Context, permissions *model.DatabasePermissions) error {
   cmd := `declare @stmt nvarchar(max)
-          DECLARE @user_name varchar(80)
-          SET @user_name = (SELECT pr.name FROM sys.database_principals AS pr WHERE pr.principal_id = @principalId)
           DECLARE perm_cur CURSOR FOR SELECT value FROM String_Split(@permissions, ',')
           DECLARE @permission_name nvarchar(max)
           OPEN perm_cur
           FETCH NEXT FROM perm_cur INTO @permission_name
           WHILE @@FETCH_STATUS = 0
             BEGIN
-              SET @stmt = 'REVOKE ' + @permission_name + ' TO ' + QuoteName(@user_name)
+              SET @stmt = 'REVOKE ' + @permission_name + ' TO ' + QuoteName(@username)
               EXEC (@stmt)
               FETCH NEXT FROM perm_cur INTO @permission_name
             END
@@ -110,7 +105,7 @@ func (c *Connector) DeleteDatabasePermissions(ctx context.Context, permissions *
   setDatabase(&permissions.DatabaseName).
     ExecContext(ctx, cmd,
       // sql.Named("database", database),
-      sql.Named("principalId", fmt.Sprintf("%d", permissions.PrincipalID)),
+      sql.Named("username", permissions.UserName),
       sql.Named("permissions", strings.Join(permissions.Permissions, ",")),
     )
 }

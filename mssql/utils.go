@@ -26,8 +26,9 @@ func getDatabasePermissionsID(data *schema.ResourceData) string {
   host := data.Get(serverProp + ".0.host").(string)
   port := data.Get(serverProp + ".0.port").(string)
   database := data.Get(databaseProp).(string)
-  principalId := data.Get(principalIdProp).(int)
-  return fmt.Sprintf("sqlserver://%s:%s/%s/%d/%s", host, port, database, principalId, "permissions")
+  // principalId := data.Get(principalIdProp).(int)
+	username := data.Get(usernameProp).(string)
+  return fmt.Sprintf("sqlserver://%s:%s/%s/%s/%s", host, port, database, username, "permissions")
 }
 
 func getDatabaseRoleID(data *schema.ResourceData) string {

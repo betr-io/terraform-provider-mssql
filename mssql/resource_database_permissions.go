@@ -3,7 +3,6 @@ package mssql
 import (
   "context"
   "strings"
-  "strconv"
   "github.com/betr-io/terraform-provider-mssql/mssql/model"
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -33,10 +32,14 @@ func resourceDatabasePermissions() *schema.Resource {
         Required: true,
         ForceNew: true,
       },
-      principalIdProp: {
-        Type:     schema.TypeInt,
+      usernameProp: {
+        Type:     schema.TypeString,
         Required: true,
         ForceNew: true,
+      },
+      principalIdProp: {
+        Type:     schema.TypeInt,
+        Computed: true,
       },
       permissionsProp: {
         Type:     schema.TypeSet,
@@ -55,7 +58,7 @@ func resourceDatabasePermissions() *schema.Resource {
 
 type DatabasePermissionsConnector interface {
   CreateDatabasePermissions(ctx context.Context, dbPermission *model.DatabasePermissions) error
-  GetDatabasePermissions(ctx context.Context, database string, principalId int) (*model.DatabasePermissions, error)
+  GetDatabasePermissions(ctx context.Context, database string, username string) (*model.DatabasePermissions, error)
   DeleteDatabasePermissions(ctx context.Context, dbPermission *model.DatabasePermissions) error
 }
 
@@ -64,7 +67,7 @@ func resourceDatabasePermissionsCreate(ctx context.Context, data *schema.Resourc
   logger.Debug().Msgf("Create %s", getDatabasePermissionsID(data))
 
   database := data.Get(databaseProp).(string)
-  principalId := data.Get(principalIdProp).(int)
+  username := data.Get(usernameProp).(string)
   permissions := data.Get(permissionsProp).(*schema.Set).List()
 
   connector, err := getDatabasePermissionsConnector(meta, data)
@@ -74,16 +77,16 @@ func resourceDatabasePermissionsCreate(ctx context.Context, data *schema.Resourc
 
   dbPermissionModel := &model.DatabasePermissions{
     DatabaseName: database,
-    PrincipalID:  principalId,
+    UserName:  username,
     Permissions:  toStringSlice(permissions),
   }
   if err = connector.CreateDatabasePermissions(ctx, dbPermissionModel); err != nil {
-    return diag.FromErr(errors.Wrapf(err, "unable to create database permissions [%s] on database [%s] for principal [%d]", permissions, database, principalId))
+    return diag.FromErr(errors.Wrapf(err, "unable to create database permissions [%s] on database [%s] for user [%s]", permissions, database, username))
   }
 
   data.SetId(getDatabasePermissionsID(data))
 
-  logger.Info().Msgf("created database permissions [%s] on database [%s] for principal [%d]", permissions, database, principalId)
+  logger.Info().Msgf("created database permissions [%s] on database [%s] for user [%s]", permissions, database, username)
 
   return resourceDatabasePermissionsRead(ctx, data, meta)
 }
@@ -93,22 +96,25 @@ func resourceDatabasePermissionsRead(ctx context.Context, data *schema.ResourceD
   logger.Debug().Msgf("Read %s", data.Id())
 
   database := data.Get(databaseProp).(string)
-  principalId := data.Get(principalIdProp).(int)
+  username := data.Get(usernameProp).(string)
 
   connector, err := getDatabasePermissionsConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
 
-  permissions, err := connector.GetDatabasePermissions(ctx, database, principalId)
+  permissions, err := connector.GetDatabasePermissions(ctx, database, username)
   if err != nil {
-    return diag.FromErr(errors.Wrapf(err, "unable to read permissions for principal [%d] on database [%s]", principalId, database))
+    return diag.FromErr(errors.Wrapf(err, "unable to read permissions for user [%s] on database [%s]", username, database))
   }
   if permissions == nil {
-    logger.Info().Msgf("No permissions found for principal [%d] on database [%s]", principalId, database)
+    logger.Info().Msgf("No permissions found for user [%s] on database [%s]", username, database)
     data.SetId("")
   } else {
     if err = data.Set(databaseProp, permissions.DatabaseName); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(usernameProp, permissions.UserName); err != nil {
       return diag.FromErr(err)
     }
     if err = data.Set(principalIdProp, permissions.PrincipalID); err != nil {
@@ -127,7 +133,7 @@ func resourceDatabasePermissionDelete(ctx context.Context, data *schema.Resource
   logger.Debug().Msgf("Delete %s", data.Id())
 
   database := data.Get(databaseProp).(string)
-  principalId := data.Get(principalIdProp).(int)
+  username := data.Get(usernameProp).(string)
   permissions := data.Get(permissionsProp).(*schema.Set).List()
 
   connector, err := getDatabasePermissionsConnector(meta, data)
@@ -137,14 +143,14 @@ func resourceDatabasePermissionDelete(ctx context.Context, data *schema.Resource
 
   dbPermissionModel := &model.DatabasePermissions{
     DatabaseName: database,
-    PrincipalID:  principalId,
+    UserName:  username,
     Permissions:  toStringSlice(permissions),
   }
   if err = connector.DeleteDatabasePermissions(ctx, dbPermissionModel); err != nil {
-    return diag.FromErr(errors.Wrapf(err, "unable to delete permissions for principal [%d] on database [%s]", principalId, database))
+    return diag.FromErr(errors.Wrapf(err, "unable to delete permissions for user [%s] on database [%s]", username, database))
   }
 
-  logger.Info().Msgf("deleted permissions for principal [%d] on database [%s]", principalId, database)
+  logger.Info().Msgf("deleted permissions for user [%s] on database [%s]", username, database)
 
   // d.SetId("") is automatically called assuming delete returns no errors, but it is added here for explicitness.
   data.SetId("")
@@ -172,17 +178,12 @@ func resourceDatabasePermissionImport(ctx context.Context, data *schema.Resource
   if err = data.Set(databaseProp, parts[1]); err != nil {
     return nil, err
   }
-
-  pId, err := strconv.ParseInt(parts[2], 10, 0)
-  if err != nil {
-    return nil, err
-  }
-  if err = data.Set(principalIdProp, pId); err != nil {
+  if err = data.Set(usernameProp, parts[2]); err != nil {
     return nil, err
   }
 
   database := data.Get(databaseProp).(string)
-  principalId := data.Get(principalIdProp).(int)
+  username := data.Get(usernameProp).(string)
 
   data.SetId(getDatabasePermissionsID(data))
 
@@ -191,16 +192,19 @@ func resourceDatabasePermissionImport(ctx context.Context, data *schema.Resource
     return nil, err
   }
 
-  permissions, err := connector.GetDatabasePermissions(ctx, database, principalId)
+  permissions, err := connector.GetDatabasePermissions(ctx, database, username)
   if err != nil {
-    return nil, errors.Wrapf(err, "unable to import permissions for principal [%d] on database [%s]", principalId, database)
+    return nil, errors.Wrapf(err, "unable to import permissions for user [%s] on database [%s]", username, database)
   }
 
   if permissions == nil {
-    return nil, errors.Errorf("no permissions found for principal [%d] on database [%s] for import", principalId, database)
+    return nil, errors.Errorf("no permissions found for user [%s] on database [%s] for import", username, database)
   }
 
   if err = data.Set(databaseProp, permissions.DatabaseName); err != nil {
+    return nil, err
+  }
+  if err = data.Set(usernameProp, permissions.UserName); err != nil {
     return nil, err
   }
   if err = data.Set(principalIdProp, permissions.PrincipalID); err != nil {
