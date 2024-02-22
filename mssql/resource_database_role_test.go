@@ -8,7 +8,7 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccRole_Local_Basic_Create(t *testing.T) {
+func TestAccDatabaseRole_Local_Basic_Create(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -36,7 +36,7 @@ func TestAccRole_Local_Basic_Create(t *testing.T) {
   })
 }
 
-func TestAccRole_Local_Basic_Create_owner(t *testing.T) {
+func TestAccDatabaseRole_Local_Basic_Create_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -65,7 +65,7 @@ func TestAccRole_Local_Basic_Create_owner(t *testing.T) {
   })
 }
 
-func TestAccRole_Azure_Basic_Create(t *testing.T) {
+func TestAccDatabaseRole_Azure_Basic_Create(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     ProviderFactories: testAccProviders,
@@ -93,7 +93,7 @@ func TestAccRole_Azure_Basic_Create(t *testing.T) {
   })
 }
 
-func TestAccRole_Azure_Basic_Create_owner(t *testing.T) {
+func TestAccDatabaseRole_Azure_Basic_Create_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     ProviderFactories: testAccProviders,
@@ -122,7 +122,7 @@ func TestAccRole_Azure_Basic_Create_owner(t *testing.T) {
   })
 }
 
-func TestAccRole_Local_Basic_Update(t *testing.T) {
+func TestAccDatabaseRole_Local_Basic_Update(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -149,7 +149,7 @@ func TestAccRole_Local_Basic_Update(t *testing.T) {
   })
 }
 
-func TestAccRole_Local_Basic_Update_owner(t *testing.T) {
+func TestAccDatabaseRole_Local_Basic_Update_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -157,26 +157,26 @@ func TestAccRole_Local_Basic_Update_owner(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckRoleDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckRole(t, "local_test_update_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner", "owner_name": "db_user_owner_pre", "username": "db_user_owner_pre", "login_name": "db_login_owner1", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckRole(t, "local_test_update_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner", "owner_name": "db_user_owner_role_pre", "username": "db_user_owner_role_pre", "login_name": "db_login_owner_pre", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckRoleExists("mssql_database_role.local_test_update_auth", Check{"owner_name", "==", "db_user_owner_pre"}),
+          testAccCheckRoleExists("mssql_database_role.local_test_update_auth", Check{"owner_name", "==", "db_user_owner_role_pre"}),
           resource.TestCheckResourceAttr("mssql_database_role.local_test_update_auth", "role_name", "test_role_owner"),
-          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_auth", "owner_name", "db_user_owner_pre"),
+          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_auth", "owner_name", "db_user_owner_role_pre"),
         ),
       },
       {
-        Config: testAccCheckRole(t, "local_test_update_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner", "owner_name": "db_user_owner_post", "username": "db_user_owner_post", "login_name": "db_login_owner2", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckRole(t, "local_test_update_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner", "owner_name": "db_user_owner_role_post", "username": "db_user_owner_role_post", "login_name": "db_login_owner_post", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckRoleExists("mssql_database_role.local_test_update_auth", Check{"owner_name", "==", "db_user_owner_post"}),
+          testAccCheckRoleExists("mssql_database_role.local_test_update_auth", Check{"owner_name", "==", "db_user_owner_role_post"}),
           resource.TestCheckResourceAttr("mssql_database_role.local_test_update_auth", "role_name", "test_role_owner"),
-          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_auth", "owner_name", "db_user_owner_post"),
+          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_auth", "owner_name", "db_user_owner_role_post"),
         ),
       },
     },
   })
 }
 
-func TestAccRole_Local_Basic_Update_remove_owner(t *testing.T) {
+func TestAccDatabaseRole_Local_Basic_Remove_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -203,7 +203,7 @@ func TestAccRole_Local_Basic_Update_remove_owner(t *testing.T) {
   })
 }
 
-func TestAccRole_Local_Basic_Update_role_and_owner(t *testing.T) {
+func TestAccDatabaseRole_Local_Basic_Update_role_and_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -211,26 +211,26 @@ func TestAccRole_Local_Basic_Update_role_and_owner(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckRoleDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckRole(t, "local_test_update_role_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner_pre_row", "owner_name": "db_user_owner_pre_row", "username": "db_user_owner_pre_row", "login_name": "db_login_owner1", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckRole(t, "local_test_update_role_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner_pre_row", "owner_name": "db_user_owner_row_pre", "username": "db_user_owner_row_pre", "login_name": "db_login_owner_row_pre", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
           testAccCheckRoleExists("mssql_database_role.local_test_update_role_auth"),
           resource.TestCheckResourceAttr("mssql_database_role.local_test_update_role_auth", "role_name", "test_role_owner_pre_row"),
-          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_role_auth", "owner_name", "db_user_owner_pre_row"),
+          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_role_auth", "owner_name", "db_user_owner_row_pre"),
         ),
       },
       {
-        Config: testAccCheckRole(t, "local_test_update_role_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner_post_row", "owner_name": "db_user_owner_post_row", "username": "db_user_owner_post_row", "login_name": "db_login_owner2", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckRole(t, "local_test_update_role_auth", "login", map[string]interface{}{"database": "master", "role_name": "test_role_owner_post_row", "owner_name": "db_user_owner_row_post", "username": "db_user_owner_row_post", "login_name": "db_login_owner_row_post", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
           testAccCheckRoleExists("mssql_database_role.local_test_update_role_auth"),
           resource.TestCheckResourceAttr("mssql_database_role.local_test_update_role_auth", "role_name", "test_role_owner_post_row"),
-          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_role_auth", "owner_name", "db_user_owner_post_row"),
+          resource.TestCheckResourceAttr("mssql_database_role.local_test_update_role_auth", "owner_name", "db_user_owner_row_post"),
         ),
       },
     },
   })
 }
 
-func TestAccRole_Azure_Basic_Update(t *testing.T) {
+func TestAccDatabaseRole_Azure_Basic_Update(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     ProviderFactories: testAccProviders,
@@ -276,7 +276,7 @@ func TestAccRole_Azure_Basic_Update(t *testing.T) {
   })
 }
 
-func TestAccRole_Azure_Basic_Update_owner(t *testing.T) {
+func TestAccDatabaseRole_Azure_Basic_Update_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     ProviderFactories: testAccProviders,

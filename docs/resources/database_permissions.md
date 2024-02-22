@@ -10,8 +10,8 @@ resource "mssql_database_permissions" "example" {
     host = "example-sql-server.database.windows.net"
     azure_login {}
   }
-  database     = "example"
-  principal_id = 1
+  database = "example"
+  username = "sql_username"
   permissions = [
     "EXECUTE",
     "UPDATE",
@@ -26,7 +26,7 @@ The following arguments are supported:
 
 * `server` - (Required) Server and login details for the SQL Server. The attributes supported in the `server` block is detailed below. Changing this forces a new resource to be created.
 * `database` - (Required) The name of the database to operate on. Changing this forces a new resource to be created.
-* `principal_id` - (Required) The principal ID of the user permissions are managed for. Changing this forces a new resource to be created.
+* `username` - (Required) The name of the database user. Changing this forces a new resource to be created.
 * `permissions` - (Required) List of permissions to grant to the user. Changing this forces a new resource to be created.
 
 The `server` block supports the following arguments:
@@ -65,5 +65,5 @@ Before importing `mssql_database_permissions`, you must to configure the authent
 After that you can import the MSSQL Database permissions using the server URL and `principal ID of the user`, e.g.
 
 ```shell
-terraform import mssql_database_permissions.example 'mssql://example-sql-server.database.windows.net/master/7/permissions'
+terraform import mssql_database_permissions.example 'mssql://example-sql-server.database.windows.net/master/username/permissions'
 ```

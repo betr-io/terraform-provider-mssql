@@ -1,11 +1,11 @@
-# mssql_login (Data Source)
+# mssql_user (Data Source)
 
-The `mssql_login` obtains information about SQL login.
+The `mssql_user` obtains information about SQL user.
 
 ## Example Usage
 
 ```hcl
-data "mssql_login" "example" {
+data "mssql_user" "example" {
   server {
     host = "example-sql-server.database.windows.net"
     login {
@@ -13,7 +13,8 @@ data "mssql_login" "example" {
       password = "password"
     }
   }
-  login_name = "testlogin"
+  database  = "master"
+  user_name = "testuser"
 }
 ```
 
@@ -22,7 +23,8 @@ data "mssql_login" "example" {
 The following arguments are supported:
 
 * `server` - (Required) Server and login details for the SQL Server. The attributes supported in the `server` block is detailed below.
-* `login_name` - (Required) The name of the server login.
+* `database` - (Optional) The database. Defaults to `master`.
+* `username` - (Required) The name of the database user.
 
 The `server` block supports the following arguments:
 
@@ -54,6 +56,9 @@ The `azuread_managed_identity_auth` block supports the following arguments:
 
 The following attributes are exported:
 
-* `principal_id` - The principal id of this server login.
+* `principal_id` - The principal id of this database user.
 * `sid` - The security identifier (SID).
-* `default_language` - Default language assigned to login.
+* `login_name` - The login name of the database user.
+* `default_schema` - Schema assigned to this database user.
+* `roles` - Database roles the user has.
+* `authentication_type` - The authentication type

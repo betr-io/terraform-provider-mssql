@@ -2,19 +2,14 @@ package mssql
 
 import (
   "context"
-  "github.com/betr-io/terraform-provider-mssql/mssql/model"
   "github.com/hashicorp/terraform-plugin-sdk/v2/diag"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/pkg/errors"
 )
 
-type dataLoginConnector interface {
-  GetLogin(ctx context.Context, name string) (*model.Login, error)
-}
-
-func dataLogin() *schema.Resource {
+func dataSourceLogin() *schema.Resource {
   return &schema.Resource{
-    ReadContext: dataLoginRead,
+    ReadContext: dataSourceLoginRead,
     Schema: map[string]*schema.Schema{
       serverProp: {
         Type:     schema.TypeList,
@@ -37,6 +32,14 @@ func dataLogin() *schema.Resource {
         Type:     schema.TypeInt,
         Computed: true,
       },
+      defaultDatabaseProp: {
+        Type:     schema.TypeString,
+        Computed: true,
+      },
+      defaultLanguageProp: {
+        Type:     schema.TypeString,
+        Computed: true,
+      },
     },
     Timeouts: &schema.ResourceTimeout{
       Default: defaultTimeout,
@@ -44,13 +47,13 @@ func dataLogin() *schema.Resource {
   }
 }
 
-func dataLoginRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func dataSourceLoginRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
   logger := loggerFromMeta(meta, "login", "read")
   logger.Debug().Msgf("Read %s", getLoginID(data))
 
   loginName := data.Get(loginNameProp).(string)
 
-  connector, err := datagetLoginConnector(meta, data)
+  connector, err := getLoginConnector(meta, data)
   if err != nil {
     return diag.FromErr(err)
   }
@@ -69,17 +72,14 @@ func dataLoginRead(ctx context.Context, data *schema.ResourceData, meta interfac
     if err = data.Set(sidStrProp, login.SIDStr); err != nil {
       return diag.FromErr(err)
     }
+    if err = data.Set(defaultDatabaseProp, login.DefaultDatabase); err != nil {
+      return diag.FromErr(err)
+    }
+    if err = data.Set(defaultLanguageProp, login.DefaultLanguage); err != nil {
+      return diag.FromErr(err)
+    }
     data.SetId(getLoginID(data))
   }
 
   return nil
-}
-
-func datagetLoginConnector(meta interface{}, data *schema.ResourceData) (dataLoginConnector, error) {
-  provider := meta.(model.Provider)
-  connector, err := provider.GetConnector(serverProp, data)
-  if err != nil {
-    return nil, err
-  }
-  return connector.(dataLoginConnector), nil
 }

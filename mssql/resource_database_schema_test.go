@@ -8,7 +8,7 @@ import (
   "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-func TestAccSchema_Local_Basic_Create(t *testing.T) {
+func TestAccDatabaseSchema_Local_Basic_Create(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -36,7 +36,7 @@ func TestAccSchema_Local_Basic_Create(t *testing.T) {
   })
 }
 
-func TestAccSchema_Local_Basic_Create_owner(t *testing.T) {
+func TestAccDatabaseSchema_Local_Basic_Create_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -65,7 +65,7 @@ func TestAccSchema_Local_Basic_Create_owner(t *testing.T) {
   })
 }
 
-func TestAccSchema_Azure_Basic_Create(t *testing.T) {
+func TestAccDatabaseSchema_Azure_Basic_Create(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     ProviderFactories: testAccProviders,
@@ -93,7 +93,7 @@ func TestAccSchema_Azure_Basic_Create(t *testing.T) {
   })
 }
 
-func TestAccSchema_Azure_Basic_Create_owner(t *testing.T) {
+func TestAccDatabaseSchema_Azure_Basic_Create_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     ProviderFactories: testAccProviders,
@@ -122,7 +122,7 @@ func TestAccSchema_Azure_Basic_Create_owner(t *testing.T) {
   })
 }
 
-func TestAccSchema_Local_Basic_Update_owner(t *testing.T) {
+func TestAccDatabaseSchema_Local_Basic_Update_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -130,26 +130,26 @@ func TestAccSchema_Local_Basic_Update_owner(t *testing.T) {
     CheckDestroy:      func(state *terraform.State) error { return testAccCheckSchemaDestroy(state) },
     Steps: []resource.TestStep{
       {
-        Config: testAccCheckSchema(t, "local_test_update_auth", "login", map[string]interface{}{"database": "master", "schema_name": "test_schema_owner", "owner_name": "db_user_owner_pre", "username": "db_user_owner_pre", "login_name": "db_login_owner1", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckSchema(t, "local_test_update_auth", "login", map[string]interface{}{"database": "master", "schema_name": "test_schema_owner", "owner_name": "db_user_owner_schema_pre", "username": "db_user_owner_schema_pre", "login_name": "db_login_owner_schema_pre", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckSchemaExists("mssql_database_schema.local_test_update_auth", Check{"owner_name", "==", "db_user_owner_pre"}),
+          testAccCheckSchemaExists("mssql_database_schema.local_test_update_auth", Check{"owner_name", "==", "db_user_owner_schema_pre"}),
           resource.TestCheckResourceAttr("mssql_database_schema.local_test_update_auth", "schema_name", "test_schema_owner"),
-          resource.TestCheckResourceAttr("mssql_database_schema.local_test_update_auth", "owner_name", "db_user_owner_pre"),
+          resource.TestCheckResourceAttr("mssql_database_schema.local_test_update_auth", "owner_name", "db_user_owner_schema_pre"),
         ),
       },
       {
-        Config: testAccCheckSchema(t, "local_test_update_auth", "login", map[string]interface{}{"database": "master", "schema_name": "test_schema_owner", "owner_name": "db_user_owner_post", "username": "db_user_owner_post", "login_name": "db_login_owner2", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Config: testAccCheckSchema(t, "local_test_update_auth", "login", map[string]interface{}{"database": "master", "schema_name": "test_schema_owner", "owner_name": "db_user_owner_schema_post", "username": "db_user_owner_schema_post", "login_name": "db_login_owner_schema_post", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
         Check: resource.ComposeTestCheckFunc(
-          testAccCheckSchemaExists("mssql_database_schema.local_test_update_auth", Check{"owner_name", "==", "db_user_owner_post"}),
+          testAccCheckSchemaExists("mssql_database_schema.local_test_update_auth", Check{"owner_name", "==", "db_user_owner_schema_post"}),
           resource.TestCheckResourceAttr("mssql_database_schema.local_test_update_auth", "schema_name", "test_schema_owner"),
-          resource.TestCheckResourceAttr("mssql_database_schema.local_test_update_auth", "owner_name", "db_user_owner_post"),
+          resource.TestCheckResourceAttr("mssql_database_schema.local_test_update_auth", "owner_name", "db_user_owner_schema_post"),
         ),
       },
     },
   })
 }
 
-func TestAccSchema_Local_Basic_Update_remove_owner(t *testing.T) {
+func TestAccDatabaseSchema_Local_Basic_Update_remove_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     IsUnitTest:        runLocalAccTests,
@@ -176,7 +176,7 @@ func TestAccSchema_Local_Basic_Update_remove_owner(t *testing.T) {
   })
 }
 
-func TestAccSchema_Azure_Basic_Update_owner(t *testing.T) {
+func TestAccDatabaseSchema_Azure_Basic_Update_owner(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
     ProviderFactories: testAccProviders,

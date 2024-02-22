@@ -13,6 +13,10 @@ func (c *Connector) GetDatabaseSchema(ctx context.Context, database, schemaName 
                 BEGIN
                   SELECT dp1.schema_id, dp1.name, dp1.principal_id, '' AS name FROM [sys].[schemas] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.principal_id AND dp1.name = @schemaName
                 END
+              ELSE
+                BEGIN
+                  SELECT dp1.schema_id, dp1.name, dp1.principal_id, dp2.name FROM [sys].[schemas] dp1 INNER JOIN [sys].[database_principals] dp2 ON dp1.principal_id = dp2.principal_id AND dp1.name = @schemaName
+                END
             END
           ELSE
             BEGIN
