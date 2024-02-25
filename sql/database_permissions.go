@@ -63,7 +63,7 @@ func (c *Connector) GetDatabasePermissions(ctx context.Context, database string,
 }
 
 func (c *Connector) CreateDatabasePermissions(ctx context.Context, permissions *model.DatabasePermissions) error {
-  cmd := `declare @stmt nvarchar(max)
+  cmd := `DECLARE @stmt nvarchar(max)
           DECLARE perm_cur CURSOR FOR SELECT value FROM String_Split(@permissions, ',')
           DECLARE @permission_name nvarchar(max)
           OPEN perm_cur
@@ -87,14 +87,14 @@ func (c *Connector) CreateDatabasePermissions(ctx context.Context, permissions *
 }
 
 func (c *Connector) DeleteDatabasePermissions(ctx context.Context, permissions *model.DatabasePermissions) error {
-  cmd := `declare @stmt nvarchar(max)
+  cmd := `DECLARE @stmt nvarchar(max)
           DECLARE perm_cur CURSOR FOR SELECT value FROM String_Split(@permissions, ',')
           DECLARE @permission_name nvarchar(max)
           OPEN perm_cur
           FETCH NEXT FROM perm_cur INTO @permission_name
           WHILE @@FETCH_STATUS = 0
             BEGIN
-              SET @stmt = 'REVOKE ' + @permission_name + ' TO ' + QuoteName(@username)
+              SET @stmt = 'REVOKE ' + @permission_name + ' FROM ' + QuoteName(@username)
               EXEC (@stmt)
               FETCH NEXT FROM perm_cur INTO @permission_name
             END

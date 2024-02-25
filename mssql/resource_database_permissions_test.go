@@ -37,6 +37,98 @@ func TestAccDatabasePermissions_Local_Basic(t *testing.T) {
   })
 }
 
+func TestAccDatabasePermissions_Local_Basic_update_1(t *testing.T) {
+  resource.Test(t, resource.TestCase{
+    PreCheck:          func() { testAccPreCheck(t) },
+    IsUnitTest:        runLocalAccTests,
+    ProviderFactories: testAccProviders,
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckDatabasePermissionsDestroy(state) },
+    Steps: []resource.TestStep{
+      {
+        Config: testAccCheckDatabasePermissions(t, "database", "login", map[string]interface{}{"database": "master", "username": "db_user_perm_grant", "permissions": "[\"EXECUTE\"]", "login_name": "db_login_perm_grant", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckDatabasePermissionsExist("mssql_database_permissions.database"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "database", "master"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.0", "EXECUTE"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.host", "localhost"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.port", "1433"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.0.username", os.Getenv("MSSQL_USERNAME")),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.0.password", os.Getenv("MSSQL_PASSWORD")),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.azure_login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_database_permissions.database", "principal_id"),
+        ),
+      },
+      {
+        Config: testAccCheckDatabasePermissions(t, "database", "login", map[string]interface{}{"database": "master", "username": "db_user_perm_grant", "permissions": "[\"EXECUTE\", \"VIEW DEFINITION\"]", "login_name": "db_login_perm_grant", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckDatabasePermissionsExist("mssql_database_permissions.database"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "database", "master"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.#", "2"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.0", "EXECUTE"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.1", "VIEW DEFINITION"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.host", "localhost"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.port", "1433"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.0.username", os.Getenv("MSSQL_USERNAME")),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.0.password", os.Getenv("MSSQL_PASSWORD")),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.azure_login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_database_permissions.database", "principal_id"),
+        ),
+      },
+    },
+  })
+}
+
+func TestAccDatabasePermissions_Local_Basic_update_2(t *testing.T) {
+  resource.Test(t, resource.TestCase{
+    PreCheck:          func() { testAccPreCheck(t) },
+    IsUnitTest:        runLocalAccTests,
+    ProviderFactories: testAccProviders,
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckDatabasePermissionsDestroy(state) },
+    Steps: []resource.TestStep{
+      {
+        Config: testAccCheckDatabasePermissions(t, "database", "login", map[string]interface{}{"database": "master", "username": "db_user_perm_update", "permissions": "[\"REFERENCES\",\"UPDATE\"]", "login_name": "db_login_perm_update", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckDatabasePermissionsExist("mssql_database_permissions.database"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "database", "master"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.#", "2"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.0", "REFERENCES"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.1", "UPDATE"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.host", "localhost"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.port", "1433"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.0.username", os.Getenv("MSSQL_USERNAME")),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.0.password", os.Getenv("MSSQL_PASSWORD")),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.azure_login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_database_permissions.database", "principal_id"),
+        ),
+      },
+      {
+        Config: testAccCheckDatabasePermissions(t, "database", "login", map[string]interface{}{"database": "master", "username": "db_user_perm_update", "permissions": "[\"REFERENCES\"]", "login_name": "db_login_perm_update", "login_password": "valueIsH8kd$¡", "roles": "[\"db_owner\"]"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckDatabasePermissionsExist("mssql_database_permissions.database"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "database", "master"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "permissions.0", "REFERENCES"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.host", "localhost"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.port", "1433"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.#", "1"),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.0.username", os.Getenv("MSSQL_USERNAME")),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.login.0.password", os.Getenv("MSSQL_PASSWORD")),
+          resource.TestCheckResourceAttr("mssql_database_permissions.database", "server.0.azure_login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_database_permissions.database", "principal_id"),
+        ),
+      },
+    },
+  })
+}
+
 func TestAccDatabasePermissions_Azure_Basic(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
