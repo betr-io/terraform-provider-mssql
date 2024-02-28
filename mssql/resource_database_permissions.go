@@ -13,6 +13,7 @@ func resourceDatabasePermissions() *schema.Resource {
   return &schema.Resource{
     CreateContext: resourceDatabasePermissionsCreate,
     ReadContext:   resourceDatabasePermissionsRead,
+    UpdateContext: resourceDatabasePermissionUpdate,
     DeleteContext: resourceDatabasePermissionDelete,
     Importer: &schema.ResourceImporter{
       StateContext: resourceDatabasePermissionImport,
@@ -44,7 +45,6 @@ func resourceDatabasePermissions() *schema.Resource {
       permissionsProp: {
         Type:     schema.TypeSet,
         Required: true,
-        ForceNew: true,
         Elem: &schema.Schema{
           Type: schema.TypeString,
         },
@@ -59,6 +59,7 @@ func resourceDatabasePermissions() *schema.Resource {
 type DatabasePermissionsConnector interface {
   CreateDatabasePermissions(ctx context.Context, dbPermission *model.DatabasePermissions) error
   GetDatabasePermissions(ctx context.Context, database string, username string) (*model.DatabasePermissions, error)
+  UpdateDatabasePermissions(ctx context.Context, dbPermission *model.DatabasePermissions) error
   DeleteDatabasePermissions(ctx context.Context, dbPermission *model.DatabasePermissions) error
 }
 
@@ -157,6 +158,36 @@ func resourceDatabasePermissionDelete(ctx context.Context, data *schema.Resource
 
   return nil
 }
+
+func resourceDatabasePermissionUpdate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
+  logger := loggerFromMeta(meta, "databasepermissions", "update")
+  logger.Debug().Msgf("Update %s", data.Id())
+
+  database := data.Get(databaseProp).(string)
+  username := data.Get(usernameProp).(string)
+  permissions := data.Get(permissionsProp).(*schema.Set).List()
+
+  connector, err := getDatabasePermissionsConnector(meta, data)
+  if err != nil {
+    return diag.FromErr(err)
+  }
+
+  dbPermissionModel := &model.DatabasePermissions{
+    DatabaseName: database,
+    UserName:  username,
+    Permissions:  toStringSlice(permissions),
+  }
+  if err = connector.UpdateDatabasePermissions(ctx, dbPermissionModel); err != nil {
+    return diag.FromErr(errors.Wrapf(err, "unable to update permissions for user [%s] on database [%s]", username, database))
+  }
+
+  data.SetId(getDatabasePermissionsID(data))
+
+  logger.Info().Msgf("updated permissions for user [%s] on database [%s]", username, database)
+
+  return resourceDatabasePermissionsRead(ctx, data, meta)
+}
+
 
 func resourceDatabasePermissionImport(ctx context.Context, data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
   logger := loggerFromMeta(meta, "databasepermissions", "import")
