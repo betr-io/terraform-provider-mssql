@@ -32,7 +32,7 @@ func dataSourceDatabasePermissions() *schema.Resource {
       },
       principalIdProp: {
         Type:     schema.TypeInt,
-				Computed: true,
+        Computed: true,
       },
       permissionsProp: {
         Type:     schema.TypeSet,
@@ -79,7 +79,7 @@ func dataSourceDatabasePermissionsRead(ctx context.Context, data *schema.Resourc
     if err = data.Set(permissionsProp, permissions.Permissions); err != nil {
       return diag.FromErr(err)
     }
-		data.SetId(getDatabasePermissionsID(data))
+    data.SetId(getDatabasePermissionsID(data))
   }
 
   return nil

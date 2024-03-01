@@ -5,6 +5,6 @@ package model
 type DatabaseRole struct {
   RoleID    int
   RoleName  string
-	OwnerName string
-	OwnerId   int
+  OwnerName string
+  OwnerId   int
 }
