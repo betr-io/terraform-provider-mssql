@@ -26,8 +26,7 @@ func getDatabasePermissionsID(data *schema.ResourceData) string {
   host := data.Get(serverProp + ".0.host").(string)
   port := data.Get(serverProp + ".0.port").(string)
   database := data.Get(databaseProp).(string)
-  // principalId := data.Get(principalIdProp).(int)
-	username := data.Get(usernameProp).(string)
+  username := data.Get(usernameProp).(string)
   return fmt.Sprintf("sqlserver://%s:%s/%s/%s/%s", host, port, database, username, "permissions")
 }
 
@@ -45,6 +44,21 @@ func getDatabaseSchemaID(data *schema.ResourceData) string {
   database := data.Get(databaseProp).(string)
   schemaName := data.Get(schemaNameProp).(string)
   return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, schemaName)
+}
+
+func getDatabaseCredentialID(data *schema.ResourceData) string {
+  host := data.Get(serverProp + ".0.host").(string)
+  port := data.Get(serverProp + ".0.port").(string)
+  database := data.Get(databaseProp).(string)
+  credentialname := data.Get(credentialNameProp).(string)
+  return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, credentialname)
+}
+
+func getDatabaseMasterkeyID(data *schema.ResourceData) string {
+  host := data.Get(serverProp + ".0.host").(string)
+  port := data.Get(serverProp + ".0.port").(string)
+  database := data.Get(databaseProp).(string)
+  return fmt.Sprintf("sqlserver://%s:%s/%s/%s", host, port, database, "masterkey")
 }
 
 func loggerFromMeta(meta interface{}, resource, function string) zerolog.Logger {
