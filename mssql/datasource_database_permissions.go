@@ -47,6 +47,7 @@ func dataSourceDatabasePermissions() *schema.Resource {
     },
   }
 }
+
 func dataSourceDatabasePermissionsRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
   logger := loggerFromMeta(meta, "databasepermissions", "read")
   logger.Debug().Msgf("Read %s", getDatabasePermissionsID(data))
