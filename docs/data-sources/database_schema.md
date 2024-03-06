@@ -24,8 +24,8 @@ data "mssql_database_schema" "example" {
 The following arguments are supported:
 
 * `server` - (Required) Server and login details for the SQL Server. The attributes supported in the `server` block is detailed below.
-* `schema_name` - (Required) The name of the schema.
 * `database` - (Optional) The database. Defaults to `master`.
+* `schema_name` - (Required) The name of the schema.
 
 The `server` block supports the following arguments:
 

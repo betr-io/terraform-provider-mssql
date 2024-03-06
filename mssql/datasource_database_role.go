@@ -48,6 +48,7 @@ func dataSourceDatabaseRole() *schema.Resource {
     },
   }
 }
+
 func dataSourceDatabaseRoleRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
   logger := loggerFromMeta(meta, "role", "read")
   logger.Debug().Msgf("Read %s", getDatabaseRoleID(data))
@@ -83,8 +84,6 @@ func dataSourceDatabaseRoleRead(ctx context.Context, data *schema.ResourceData, 
     }
     data.SetId(getDatabaseRoleID(data))
   }
-
-  logger.Info().Msgf("read role [%s].[%s]", database, roleName)
 
   return nil
 }

@@ -1,11 +1,11 @@
-# mssql_database_role (Data Source)
+# mssql_database_credential (Data Source)
 
-The `mssql_database_role` obtains information about database role.
+The `mssql_database_credential` obtains information about user permissions on a SQL Server.
 
 ## Example Usage
 
 ```hcl
-data "mssql_database_role" "example" {
+data "mssql_database_credential" "example" {
   server {
     host = "example-sql-server.database.windows.net"
     azure_login {
@@ -14,8 +14,8 @@ data "mssql_database_role" "example" {
       client_secret = "xxxxxxxxxxxxxxxxxxxxxx"
     }
   }
-  database  = "master"
-  role_name = "example-role-name"
+  database  = "example"
+  credential_name = "example-credential-name"
 }
 ```
 
@@ -24,8 +24,8 @@ data "mssql_database_role" "example" {
 The following arguments are supported:
 
 * `server` - (Required) Server and login details for the SQL Server. The attributes supported in the `server` block is detailed below.
-* `database` - (Optional) The database. Defaults to `master`.
-* `role_name` - (Required) The name of the role.
+* `database` - (Required) The database.
+* `credential_name` - (Required) The database scoped credential name.
 
 The `server` block supports the following arguments:
 
@@ -43,6 +43,7 @@ The `login` block supports the following arguments:
 
 The following attributes are exported:
 
-* `principal_id` - The principal id of this database role.
-* `owner_name` - The database user name or role name that is own the role.
-* `owning_principal_id` - The database user id or the role id that is own the role.
+* `principal_id` - The principal id of this database scoped credential.
+* `credential_id` - The id of this database scoped credential.
+* `credential_name` - The name of the database scoped credential.
+* `identity_name` - The name of the account.
