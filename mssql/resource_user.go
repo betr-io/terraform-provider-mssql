@@ -38,6 +38,7 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				ValidateFunc: SQLIdentifier,
 			},
 			objectIdProp: {
 				Type:     schema.TypeString,
@@ -48,6 +49,7 @@ func resourceUser() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				ConflictsWith: []string{passwordProp},
 			},
 			passwordProp: {
 				Type:      schema.TypeString,
@@ -113,9 +115,6 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
 	defaultLanguage := data.Get(defaultLanguageProp).(string)
 	roles := data.Get(rolesProp).(*schema.Set).List()
 
-	if loginName != "" && password != "" {
-		return diag.Errorf(loginNameProp + " and " + passwordProp + " cannot both be set")
-	}
 	var authType string
 	if loginName != "" {
 		authType = "INSTANCE"

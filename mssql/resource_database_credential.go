@@ -42,10 +42,12 @@ func resourceDatabaseCredential() *schema.Resource {
         Type:     schema.TypeString,
         Required: true,
         ForceNew: true,
+        ValidateFunc: SQLIdentifierName,
       },
       identitynameProp: {
         Type:     schema.TypeString,
         Required: true,
+				ValidateFunc: SQLIdentifierName,
       },
       secretProp: {
         Type:     schema.TypeString,
@@ -138,7 +140,7 @@ func resourceDatabaseCredentialRead(ctx context.Context, data *schema.ResourceDa
 
 func resourceDatabaseCredentialUpdate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
   logger := loggerFromMeta(meta, "databasecredential", "update")
-  logger.Debug().Msgf("update %s", getDatabaseCredentialID(data))
+  logger.Debug().Msgf("Update %s", getDatabaseCredentialID(data))
 
   database := data.Get(databaseProp).(string)
   credentialname := data.Get(credentialNameProp).(string)

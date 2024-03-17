@@ -36,7 +36,7 @@ func resourceDatabaseRole() *schema.Resource {
       roleNameProp: {
         Type:        schema.TypeString,
         Required:    true,
-        Description: "The name of the role",
+        ValidateFunc: SQLIdentifierName,
       },
       ownerNameProp: {
         Type:     schema.TypeString,

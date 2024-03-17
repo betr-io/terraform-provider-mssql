@@ -2,6 +2,7 @@ package mssql
 
 import (
   "fmt"
+  "regexp"
   "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
   "github.com/rs/zerolog"
   "github.com/betr-io/terraform-provider-mssql/mssql/model"
@@ -71,4 +72,40 @@ func toStringSlice(values []interface{}) []string {
     result[i] = v.(string)
   }
   return result
+}
+
+func SQLIdentifier(v interface{}, k string) (warns []string, errors []error) {
+  value := v.(string)
+  if match, _ := regexp.Match("^[a-zA-Z_@#][a-zA-Z\\d@$#_-]*$", []byte(value)); !match {
+    errors = append(errors, fmt.Errorf(
+      "invalid SQL identifier. SQL identifier allows letters, digits, @, $, # or _, start with letter, _, @ or # .Got %q", value))
+  }
+
+  if 1 > len(value) {
+    errors = append(errors, fmt.Errorf("%q cannot be less than 1 character: %q", k, value))
+  }
+
+  if len(value) > 128 {
+    errors = append(errors, fmt.Errorf("%q cannot be longer than 128 characters: %q %d", k, value, len(value)))
+  }
+
+  return
+}
+
+func SQLIdentifierName(v interface{}, k string) (warns []string, errors []error) {
+  value := v.(string)
+  if (!regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(value)) && (!regexp.MustCompile("SHARED ACCESS SIGNATURE").MatchString(value)) {
+    errors = append(errors, fmt.Errorf(
+      "any combination of alphanumeric characters including hyphens and underscores are allowed in %q: %q", k, value))
+  }
+
+  if 1 > len(value) {
+    errors = append(errors, fmt.Errorf("%q cannot be less than 1 character: %q", k, value))
+  }
+
+  if len(value) > 128 {
+    errors = append(errors, fmt.Errorf("%q cannot be longer than 128 characters: %q %d", k, value, len(value)))
+  }
+
+  return
 }
