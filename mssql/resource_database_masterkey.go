@@ -39,6 +39,7 @@ func resourceDatabaseMasterkey() *schema.Resource {
       passwordProp: {
         Type:     schema.TypeString,
         Required: true,
+        Sensitive: true,
       },
       keynameProp: {
         Type:     schema.TypeString,
@@ -153,7 +154,7 @@ func resourceDatabaseMasterkeyRead(ctx context.Context, data *schema.ResourceDat
 
 func resourceDatabaseMasterkeyUpdate(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
   logger := loggerFromMeta(meta, "databasemasterkey", "update")
-  logger.Debug().Msgf("update %s", getDatabaseMasterkeyID(data))
+  logger.Debug().Msgf("Update %s", getDatabaseMasterkeyID(data))
 
   database := data.Get(databaseProp).(string)
   password := data.Get(passwordProp).(string)

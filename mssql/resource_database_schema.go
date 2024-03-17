@@ -37,6 +37,7 @@ func resourceDatabaseSchema() *schema.Resource {
         Type:     schema.TypeString,
         Required: true,
         ForceNew: true,
+        ValidateFunc: SQLIdentifierName,
       },
       ownerNameProp: {
         Type:     schema.TypeString,

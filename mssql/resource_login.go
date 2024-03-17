@@ -42,6 +42,7 @@ func resourceLogin() *schema.Resource {
         Type:     schema.TypeString,
         Required: true,
         ForceNew: true,
+        ValidateFunc: SQLIdentifier,
       },
       passwordProp: {
         Type:      schema.TypeString,
