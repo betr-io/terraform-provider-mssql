@@ -76,9 +76,9 @@ func toStringSlice(values []interface{}) []string {
 
 func SQLIdentifier(v interface{}, k string) (warns []string, errors []error) {
   value := v.(string)
-  if match, _ := regexp.Match("^[a-zA-Z_@#][a-zA-Z\\d@$#_-]*$", []byte(value)); !match {
+  if match, _ := regexp.Match("^[a-zA-Z_@#\\.][a-zA-Z\\.\\d@$#_-]*$", []byte(value)); !match {
     errors = append(errors, fmt.Errorf(
-      "invalid SQL identifier. SQL identifier allows letters, digits, @, $, # or _, start with letter, _, @ or # .Got %q", value))
+      "invalid SQL identifier. SQL identifier allows letters, digits, @, $, #, . or _, start with letter, _, @ or # .Got %q", value))
   }
 
   if 1 > len(value) {

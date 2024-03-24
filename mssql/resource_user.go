@@ -72,7 +72,8 @@ func resourceUser() *schema.Resource {
 			defaultSchemaProp: {
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  defaultSchemaPropDefault,
+				Computed: true,
+				// Default:  defaultSchemaPropDefault,
 			},
 			defaultLanguageProp: {
 				Type:     schema.TypeString,
@@ -123,9 +124,10 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
 	} else {
 		authType = "EXTERNAL"
 	}
-	if defaultSchema == "" {
-		return diag.Errorf(defaultSchemaProp + " cannot be empty")
-	}
+	// if defaultSchema == "" {
+	// 	return diag.Errorf(defaultSchemaProp + " cannot be empty")
+	// }
+	if defaultSchema == "" {defaultSchema = "dbo"}
 
 	connector, err := getUserConnector(meta, data)
 	if err != nil {
