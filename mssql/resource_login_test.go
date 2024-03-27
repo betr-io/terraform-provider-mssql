@@ -38,6 +38,37 @@ func TestAccLogin_Local_Basic(t *testing.T) {
   })
 }
 
+func TestAccLogin_Local_Basic_SID(t *testing.T) {
+  resource.Test(t, resource.TestCase{
+    PreCheck:          func() { testAccPreCheck(t) },
+    IsUnitTest:        runLocalAccTests,
+    ProviderFactories: testAccProviders,
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
+    Steps: []resource.TestStep{
+      {
+        Config: testAccCheckLogin(t, "basic", false, map[string]interface{}{"login_name": "login_basic", "password": "valueIsH8kd$¡", "sid": "0xB7BDEF7990D03541BAA2AD73E4FF18E8"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckLoginExists("mssql_login.basic"),
+          testAccCheckLoginWorks("mssql_login.basic"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "login_name", "login_basic"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "password", "valueIsH8kd$¡"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "sid", "0xB7BDEF7990D03541BAA2AD73E4FF18E8"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "default_database", "master"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "default_language", "us_english"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.#", "1"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.host", "localhost"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.port", "1433"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.login.#", "1"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.login.0.username", os.Getenv("MSSQL_USERNAME")),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.login.0.password", os.Getenv("MSSQL_PASSWORD")),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.azure_login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_login.basic", "principal_id"),
+        ),
+      },
+    },
+  })
+}
+
 func TestAccLogin_Azure_Basic(t *testing.T) {
   resource.Test(t, resource.TestCase{
     PreCheck:          func() { testAccPreCheck(t) },
@@ -50,6 +81,36 @@ func TestAccLogin_Azure_Basic(t *testing.T) {
           testAccCheckLoginExists("mssql_login.basic"),
           resource.TestCheckResourceAttr("mssql_login.basic", "login_name", "login_basic"),
           resource.TestCheckResourceAttr("mssql_login.basic", "password", "valueIsH8kd$¡"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "default_database", "master"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "default_language", "us_english"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.#", "1"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.host", os.Getenv("TF_ACC_SQL_SERVER")),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.port", "1433"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.azure_login.#", "1"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.azure_login.0.tenant_id", os.Getenv("MSSQL_TENANT_ID")),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.azure_login.0.client_id", os.Getenv("MSSQL_CLIENT_ID")),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.azure_login.0.client_secret", os.Getenv("MSSQL_CLIENT_SECRET")),
+          resource.TestCheckResourceAttr("mssql_login.basic", "server.0.login.#", "0"),
+          resource.TestCheckResourceAttrSet("mssql_login.basic", "principal_id"),
+        ),
+      },
+    },
+  })
+}
+
+func TestAccLogin_Azure_Basic_SID(t *testing.T) {
+  resource.Test(t, resource.TestCase{
+    PreCheck:          func() { testAccPreCheck(t) },
+    ProviderFactories: testAccProviders,
+    CheckDestroy:      func(state *terraform.State) error { return testAccCheckLoginDestroy(state) },
+    Steps: []resource.TestStep{
+      {
+        Config: testAccCheckLogin(t, "basic", true, map[string]interface{}{"login_name": "login_basic", "password": "valueIsH8kd$¡", "sid": "0x01060000000000640000000000000000BAF5FC800B97EF49AC6FD89469C4987F"}),
+        Check: resource.ComposeTestCheckFunc(
+          testAccCheckLoginExists("mssql_login.basic"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "login_name", "login_basic"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "password", "valueIsH8kd$¡"),
+          resource.TestCheckResourceAttr("mssql_login.basic", "sid", "0x01060000000000640000000000000000BAF5FC800B97EF49AC6FD89469C4987F"),
           resource.TestCheckResourceAttr("mssql_login.basic", "default_database", "master"),
           resource.TestCheckResourceAttr("mssql_login.basic", "default_language", "us_english"),
           resource.TestCheckResourceAttr("mssql_login.basic", "server.#", "1"),
@@ -225,6 +286,7 @@ func testAccCheckLogin(t *testing.T, name string, azure bool, data map[string]in
              }
              login_name = "{{ .login_name }}"
              password   = "{{ .password }}"
+             {{ with .sid }}sid = "{{ . }}"{{ end }}
              {{ with .default_database }}default_database = "{{ . }}"{{ end }}
              {{ with .default_language }}default_language = "{{ . }}"{{ end }}
            }`
