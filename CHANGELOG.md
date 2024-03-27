@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2024-03-27
+
+### Added
+
+- Create login with SID. [PR #74](https://github.com/betr-io/terraform-provider-mssql/pull/74). Closes [#64](https://github.com/betr-io/terraform-provider-mssql/issues/64). Thanks to [ValeruS](https://github.com/ValeruS) for the PR.
+
+### Fixed
+
+- Support read timeout for SQL loop and better error handling. [PR #61](https://github.com/betr-io/terraform-provider-mssql/pull/61). Closese [#25](https://github.com/betr-io/terraform-provider-mssql/issues/25) and [#57](https://github.com/betr-io/terraform-provider-mssql/issues/57) with better error message. Thanks to [Sebastien Coavoux](https://github.com/sebastien-coavoux) for the PR.
+
 ## [0.3.0] - 2023-12-29
 
 ### Changed
@@ -22,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fix concurrency issue on user create/update. [PR #52](https://github.com/betr-io/terraform-provider-mssql/pull/52). Closes [#31](https://github.com/betr-io/terraform-provider-mssql/issues/31]. Thanks to [Isabel Andrade](https://github.com/beandrad) for the PR.
+- Fix concurrency issue on user create/update. [PR #52](https://github.com/betr-io/terraform-provider-mssql/pull/52). Closes [#31](https://github.com/betr-io/terraform-provider-mssql/issues/31). Thanks to [Isabel Andrade](https://github.com/beandrad) for the PR.
 - Fix role reorder update issue. [PR #53](https://github.com/betr-io/terraform-provider-mssql/pull/53). Closes [#46](https://github.com/betr-io/terraform-provider-mssql/issues/46). Thanks to [Paul Brittain](https://github.com/paulbrittain) for the PR.
 
 ## [0.2.6] - 2022-11-25
