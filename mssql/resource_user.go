@@ -44,6 +44,12 @@ func resourceUser() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			userTypeProp: {
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Default:  "E",
+			},
 			loginNameProp: {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -108,6 +114,7 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
 	database := data.Get(databaseProp).(string)
 	username := data.Get(usernameProp).(string)
 	objectId := data.Get(objectIdProp).(string)
+	userType := data.Get(userTypeProp).(string)
 	loginName := data.Get(loginNameProp).(string)
 	password := data.Get(passwordProp).(string)
 	defaultSchema := data.Get(defaultSchemaProp).(string)
@@ -137,6 +144,7 @@ func resourceUserCreate(ctx context.Context, data *schema.ResourceData, meta int
 	user := &model.User{
 		Username:        username,
 		ObjectId:        objectId,
+		UserType:        userType,
 		LoginName:       loginName,
 		Password:        password,
 		AuthType:        authType,
@@ -175,6 +183,9 @@ func resourceUserRead(ctx context.Context, data *schema.ResourceData, meta inter
 		logger.Info().Msgf("No user found for [%s].[%s]", database, username)
 		data.SetId("")
 	} else {
+		if err = data.Set(userTypeProp, user.UserType); err != nil {
+			return diag.FromErr(err)
+		}
 		if err = data.Set(loginNameProp, user.LoginName); err != nil {
 			return diag.FromErr(err)
 		}
