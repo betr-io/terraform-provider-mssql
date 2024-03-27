@@ -56,3 +56,6 @@ terraform-provider-mssql
 terraform-provider-mssql.log
 terraform-provider-mssql.exe
 /.devcontainer/
+
+
+vendor
