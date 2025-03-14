@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/betr-io/terraform-provider-mssql/mssql/model"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	mssql "github.com/microsoft/go-mssqldb"
@@ -212,27 +212,24 @@ func (c *Connector) userPassword() *url.Userinfo {
 }
 
 func (c *Connector) tokenProvider() (string, error) {
-  const resourceID = "https://database.windows.net/"
-
   admin := c.AzureLogin
-  oauthConfig, err := adal.NewOAuthConfig(azure.PublicCloud.ActiveDirectoryEndpoint, admin.TenantID)
+  authority := azure.PublicCloud.ActiveDirectoryEndpoint + admin.TenantID
+  scopes := []string{azure.PublicCloud.ResourceIdentifiers.SQLDatabase + ".default"}
+
+  cred, err := confidential.NewCredFromSecret(admin.ClientSecret)
   if err != nil {
     return "", err
   }
-
-  spt, err := adal.NewServicePrincipalToken(*oauthConfig, admin.ClientID, admin.ClientSecret, resourceID)
+  confidentialClient, err := confidential.New(authority, admin.ClientID, cred)
   if err != nil {
     return "", err
   }
-
-  err = spt.EnsureFresh()
+  authResult, err := confidentialClient.AcquireTokenByCredential(context.Background(), scopes)
   if err != nil {
     return "", err
   }
-
-  c.Token = spt.OAuthToken()
-
-  return spt.OAuthToken(), nil
+  c.Token = authResult.AccessToken
+  return c.Token, nil
 }
 
 func connectLoop(connector driver.Connector, timeout time.Duration) (*sql.DB, error) {
