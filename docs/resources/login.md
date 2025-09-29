@@ -33,6 +33,7 @@ The `server` block supports the following arguments:
 * `azure_login` - (Optional) Azure AD login for managing the database resources. The attributes supported in the `azure_login` block is detailed below.
 * `azuread_default_chain_auth` - (Optional) Use a chain of strategies for authenticating when managing the database resources. This auth strategy is very similar to how the Azure CLI authenticates. For more information, see [DefaultAzureCredential](https://github.com/Azure/azure-sdk-for-go/wiki/Set-up-Your-Environment-for-Authentication#configure-defaultazurecredential). This block has no attributes.
 * `azuread_managed_identity_auth` - (Optional) Use a managed identity for authenticating when managing the database resources. This is mainly useful for specifying a user-assigned managed identity. The attributes supported in the `azuread_managed_identity_auth` block is detailed below.
+* `azure_pipelines_auth` - (Optional) Use azure pipelines federated auth, with AzureCLI@2, AzurePowerShell@5 or TerraformTask@5. The attributes supported in the `azure_pipelines_auth` block is detailed below.
 
 The `login` block supports the following arguments:
 
@@ -49,7 +50,11 @@ The `azuread_managed_identity_auth` block supports the following arguments:
 
 * `user_id` - (Optional) Id of a user-assigned managed identity to assume. Omitting this property instructs the provider to assume a system-assigned managed identity.
 
--> Only one of `login`, `azure_login`, `azuread_default_chain_auth` and `azuread_managed_identity_auth` can be specified.
+The `azure_pipelines_auth` block supports the following arguments:
+
+* `terraform_task_v5` - (Optional) If `true` gets values from env variables set by TerraformTask@5, if `false` env variables set by AzureCLI@2 or AzurePowerShell@5 (in this case also requires setting `SYSTEM_ACCESSTOKEN` env variable). Default value is `false`.
+
+-> Only one of `login`, `azure_login`, `azuread_default_chain_auth`, `azuread_managed_identity_auth` and `azure_pipelines_auth` can be specified.
 
 ## Attribute Reference
 

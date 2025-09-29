@@ -21,6 +21,7 @@ func getServerSchema(prefix string) map[string]*schema.Schema {
 		prefix + "azure_login",
 		prefix + "azuread_default_chain_auth",
 		prefix + "azuread_managed_identity_auth",
+		prefix + "azure_pipelines_auth",
 	}
 	return map[string]*schema.Schema{
 		"host": {
@@ -101,6 +102,21 @@ func getServerSchema(prefix string) map[string]*schema.Schema {
 					"user_id": {
 						Type:     schema.TypeString,
 						Optional: true,
+					},
+				},
+			},
+		},
+		"azure_pipelines_auth": {
+			Type:         schema.TypeList,
+			MaxItems:     1,
+			Optional:     true,
+			ExactlyOneOf: LoginMethods,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"terraform_task_v5": {
+						Type:     schema.TypeBool,
+						Optional: true,
+						Default:  false,
 					},
 				},
 			},
