@@ -2,11 +2,15 @@ package mssql
 
 import (
 	"context"
+	"database/sql/driver"
+	"net"
 	"strings"
 
 	"github.com/betr-io/terraform-provider-mssql/mssql/model"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/retry"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	mssql "github.com/microsoft/go-mssqldb"
 	"github.com/pkg/errors"
 )
 
@@ -89,7 +93,7 @@ func resourceUser() *schema.Resource {
 		},
 		Timeouts: &schema.ResourceTimeout{
 			Default: defaultTimeout,
-			Read: defaultTimeout,
+			Read:    defaultTimeout,
 		},
 	}
 }
@@ -167,35 +171,45 @@ func resourceUserRead(ctx context.Context, data *schema.ResourceData, meta inter
 		return diag.FromErr(err)
 	}
 
-	user, err := connector.GetUser(ctx, database, username)
-	if err != nil {
-		return diag.FromErr(errors.Wrapf(err, "unable to read user [%s].[%s]", database, username))
-	}
-	if user == nil {
-		logger.Info().Msgf("No user found for [%s].[%s]", database, username)
-		data.SetId("")
-	} else {
-		if err = data.Set(loginNameProp, user.LoginName); err != nil {
-			return diag.FromErr(err)
+	if err := retry.RetryContext(ctx, data.Timeout(schema.TimeoutRead), func() *retry.RetryError {
+		user, err := connector.GetUser(ctx, database, username)
+		if err != nil {
+			wrappedErr := errors.Wrapf(err, "unable to read user [%s].[%s]", database, username)
+			if isRetryableError(err) {
+				return retry.RetryableError(wrappedErr)
+			}
+			return retry.NonRetryableError(wrappedErr)
 		}
-		if err = data.Set(sidStrProp, user.SIDStr); err != nil {
-			return diag.FromErr(err)
+		if user == nil {
+			logger.Info().Msgf("No user found for [%s].[%s]", database, username)
+			data.SetId("")
+		} else {
+			if err = data.Set(loginNameProp, user.LoginName); err != nil {
+				return retry.NonRetryableError(err)
+			}
+			if err = data.Set(sidStrProp, user.SIDStr); err != nil {
+				return retry.NonRetryableError(err)
+			}
+			if err = data.Set(authenticationTypeProp, user.AuthType); err != nil {
+				return retry.NonRetryableError(err)
+			}
+			if err = data.Set(principalIdProp, user.PrincipalID); err != nil {
+				return retry.NonRetryableError(err)
+			}
+			if err = data.Set(defaultSchemaProp, user.DefaultSchema); err != nil {
+				return retry.NonRetryableError(err)
+			}
+			if err = data.Set(defaultLanguageProp, user.DefaultLanguage); err != nil {
+				return retry.NonRetryableError(err)
+			}
+			if err = data.Set(rolesProp, user.Roles); err != nil {
+				return retry.NonRetryableError(err)
+			}
+			return nil
 		}
-		if err = data.Set(authenticationTypeProp, user.AuthType); err != nil {
-			return diag.FromErr(err)
-		}
-		if err = data.Set(principalIdProp, user.PrincipalID); err != nil {
-			return diag.FromErr(err)
-		}
-		if err = data.Set(defaultSchemaProp, user.DefaultSchema); err != nil {
-			return diag.FromErr(err)
-		}
-		if err = data.Set(defaultLanguageProp, user.DefaultLanguage); err != nil {
-			return diag.FromErr(err)
-		}
-		if err = data.Set(rolesProp, user.Roles); err != nil {
-			return diag.FromErr(err)
-		}
+		return nil
+	}); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -333,4 +347,34 @@ func toStringSlice(values []interface{}) []string {
 		result[i] = v.(string)
 	}
 	return result
+}
+
+func isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Respect cancellation/deadline: do not retry.
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	if errors.Is(err, driver.ErrBadConn) {
+		return true
+	}
+	// Retry temporary network failures.
+	var netErr net.Error
+	if errors.As(err, &netErr) && (netErr.Timeout() || netErr.Temporary()) {
+		return true
+	}
+	// Retry SQL errors. The following errors are retryable:
+	// 40613: The database is not currently available. This error should be handled by the caller.
+	// 40197: The service is currently busy. Retry the request.
+	// 40501: The service is not available. Retry the request.
+	var sqlErr mssql.Error
+	if errors.As(err, &sqlErr) {
+		switch sqlErr.Number {
+		case 40613, 40197, 40501:
+			return true
+		}
+	}
+	return false
 }
