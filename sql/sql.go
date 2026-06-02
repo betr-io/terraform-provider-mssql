@@ -19,265 +19,317 @@ import (
 	"github.com/pkg/errors"
 )
 
-type factory struct{}
-
-func GetFactory() model.ConnectorFactory {
-  return new(factory)
+type factory struct {
+	registry *ConnectionRegistry
 }
 
-func (f factory) GetConnector(prefix string, data *schema.ResourceData) (interface{}, error) {
-  if len(prefix) > 0 {
-    prefix = prefix + ".0."
-  }
+func GetFactory() model.ConnectorFactory {
+	return GetFactoryWithConfig(DefaultPoolConfig())
+}
 
-  connector := &Connector{
-    Host:    data.Get(prefix + "host").(string),
-    Port:    data.Get(prefix + "port").(string),
-    Timeout: data.Timeout(schema.TimeoutRead),
-  }
+func GetFactoryWithConfig(config PoolConfig) model.ConnectorFactory {
+	return &factory{
+		registry: NewConnectionRegistry(config),
+	}
+}
 
-  if admin, ok := data.GetOk(prefix + "login.0"); ok {
-    admin := admin.(map[string]interface{})
-    connector.Login = &LoginUser{
-      Username: admin["username"].(string),
-      Password: admin["password"].(string),
-    }
-  }
+func (f *factory) Registry() *ConnectionRegistry {
+	return f.registry
+}
 
-  if admin, ok := data.GetOk(prefix + "azure_login.0"); ok {
-    admin := admin.(map[string]interface{})
-    connector.AzureLogin = &AzureLogin{
-      TenantID:     admin["tenant_id"].(string),
-      ClientID:     admin["client_id"].(string),
-      ClientSecret: admin["client_secret"].(string),
-    }
-  }
+func ConfigureFactory(f model.ConnectorFactory, config PoolConfig) {
+	if sf, ok := f.(*factory); ok {
+		if sf.registry != nil {
+			sf.registry.Close()
+		}
+		sf.registry = NewConnectionRegistry(config)
+	}
+}
 
-  if admin, ok := data.GetOk(prefix + "azuread_managed_identity_auth.0"); ok {
-    admin := admin.(map[string]interface{})
-    connector.FedauthMSI = &FedauthMSI{
-      UserID: admin["user_id"].(string),
-    }
-  }
+func (f *factory) GetConnector(prefix string, data *schema.ResourceData) (interface{}, error) {
+	if len(prefix) > 0 {
+		prefix = prefix + ".0."
+	}
 
-  return connector, nil
+	connector := &Connector{
+		Host:     data.Get(prefix + "host").(string),
+		Port:     data.Get(prefix + "port").(string),
+		Timeout:  data.Timeout(schema.TimeoutRead),
+		registry: f.registry,
+	}
+
+	if admin, ok := data.GetOk(prefix + "login.0"); ok {
+		admin := admin.(map[string]interface{})
+		connector.Login = &LoginUser{
+			Username: admin["username"].(string),
+			Password: admin["password"].(string),
+		}
+	}
+
+	if admin, ok := data.GetOk(prefix + "azure_login.0"); ok {
+		admin := admin.(map[string]interface{})
+		connector.AzureLogin = &AzureLogin{
+			TenantID:     admin["tenant_id"].(string),
+			ClientID:     admin["client_id"].(string),
+			ClientSecret: admin["client_secret"].(string),
+		}
+	}
+
+	if admin, ok := data.GetOk(prefix + "azuread_managed_identity_auth.0"); ok {
+		admin := admin.(map[string]interface{})
+		connector.FedauthMSI = &FedauthMSI{
+			UserID: admin["user_id"].(string),
+		}
+	}
+
+	return connector, nil
 }
 
 type Connector struct {
-  Host       string `json:"host"`
-  Port       string `json:"port"`
-  Database   string `json:"database"`
-  Login      *LoginUser
-  AzureLogin *AzureLogin
-  FedauthMSI *FedauthMSI
-  Timeout    time.Duration `json:"timeout,omitempty"`
-  Token      string
+	Host       string `json:"host"`
+	Port       string `json:"port"`
+	Database   string `json:"database"`
+	Login      *LoginUser
+	AzureLogin *AzureLogin
+	FedauthMSI *FedauthMSI
+	Timeout    time.Duration `json:"timeout,omitempty"`
+	Token      string
+	registry   *ConnectionRegistry
 }
 
 type LoginUser struct {
-  Username string `json:"username,omitempty"`
-  Password string `json:"password,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type AzureLogin struct {
-  TenantID     string `json:"tenant_id,omitempty"`
-  ClientID     string `json:"client_id,omitempty"`
-  ClientSecret string `json:"client_secret,omitempty"`
+	TenantID     string `json:"tenant_id,omitempty"`
+	ClientID     string `json:"client_id,omitempty"`
+	ClientSecret string `json:"client_secret,omitempty"`
 }
 
 type FedauthMSI struct {
-  UserID string `json:"user_id,omitempty"`
+	UserID string `json:"user_id,omitempty"`
 }
 
 func (c *Connector) PingContext(ctx context.Context) error {
-  db, err := c.db()
-  if err != nil {
-    return err
-  }
+	db, err := c.db()
+	if err != nil {
+		return err
+	}
 
-  err = db.PingContext(ctx)
-  if err != nil {
-    return errors.Wrap(err, "In ping")
-  }
+	err = db.PingContext(ctx)
+	if err != nil {
+		return errors.Wrap(err, "In ping")
+	}
 
-  return nil
+	return nil
+}
+
+func (c *Connector) closeIfUnpooled(db *sql.DB) {
+	if c.registry == nil {
+		db.Close()
+	}
 }
 
 // Execute an SQL statement and ignore the results
 func (c *Connector) ExecContext(ctx context.Context, command string, args ...interface{}) error {
-  db, err := c.db()
-  if err != nil {
-    return err
-  }
-  defer db.Close()
+	db, err := c.db()
+	if err != nil {
+		return err
+	}
+	defer c.closeIfUnpooled(db)
 
-  _, err = db.ExecContext(ctx, command, args...)
-  if err != nil {
-    return err
-  }
+	_, err = db.ExecContext(ctx, command, args...)
+	if err != nil {
+		return err
+	}
 
-  return nil
+	return nil
 }
 
 func (c *Connector) QueryContext(ctx context.Context, query string, scanner func(*sql.Rows) error, args ...interface{}) error {
-  db, err := c.db()
-  if err != nil {
-    return err
-  }
-  defer db.Close()
+	db, err := c.db()
+	if err != nil {
+		return err
+	}
+	defer c.closeIfUnpooled(db)
 
-  rows, err := db.QueryContext(ctx, query, args...)
-  if err != nil {
-    return err
-  }
-  defer rows.Close()
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
 
-  err = scanner(rows)
-  if err != nil {
-    return err
-  }
+	err = scanner(rows)
+	if err != nil {
+		return err
+	}
 
-  return nil
+	return nil
 }
 
 func (c *Connector) QueryRowContext(ctx context.Context, query string, scanner func(*sql.Row) error, args ...interface{}) error {
-  db, err := c.db()
-  if err != nil {
-    return err
-  }
-  defer db.Close()
+	db, err := c.db()
+	if err != nil {
+		return err
+	}
+	defer c.closeIfUnpooled(db)
 
-  row := db.QueryRowContext(ctx, query, args...)
-  if row.Err() != nil {
-    return row.Err()
-  }
+	row := db.QueryRowContext(ctx, query, args...)
+	if row.Err() != nil {
+		return row.Err()
+	}
 
-  return scanner(row)
+	return scanner(row)
 }
 
 func (c *Connector) db() (*sql.DB, error) {
-  if c == nil {
-    panic("No connector")
-  }
-  conn, err := c.connector()
-  if err != nil {
-    return nil, err
-  }
-  if db, err := connectLoop(conn, c.Timeout); err != nil {
-    return nil, err
-  } else {
-    return db, nil
-  }
+	if c == nil {
+		panic("No connector")
+	}
+	conn, err := c.connector()
+	if err != nil {
+		return nil, err
+	}
+
+	// Use the connection registry if available (pooled mode)
+	if c.registry != nil {
+		key := c.registryKey()
+		return c.registry.Get(key, conn, c.Timeout)
+	}
+
+	// Fallback: no registry (unpooled mode)
+	if db, err := connectLoop(conn, c.Timeout); err != nil {
+		return nil, err
+	} else {
+		return db, nil
+	}
+}
+
+func (c *Connector) registryKey() RegistryKey {
+	username := ""
+	password := ""
+	if c.Login != nil {
+		username = c.Login.Username
+		password = c.Login.Password
+	} else if c.AzureLogin != nil {
+		username = c.AzureLogin.ClientID
+		password = c.AzureLogin.ClientSecret
+	} else if c.FedauthMSI != nil {
+		username = "msi:" + c.FedauthMSI.UserID
+	}
+	return MakeRegistryKey(c.Host, c.Port, c.Database, username, password)
 }
 
 func (c *Connector) connector() (driver.Connector, error) {
-  query := url.Values{}
-  host := fmt.Sprintf("%s:%s", c.Host, c.Port)
-  if c.Database != "" {
-    query.Set("database", c.Database)
-  }
-  if c.Login != nil || c.AzureLogin != nil {
-    connectionString := (&url.URL{
-      Scheme:   "sqlserver",
-      User:     c.userPassword(),
-      Host:     host,
-      RawQuery: query.Encode(),
-    }).String()
-    if c.Login != nil {
-        return mssql.NewConnector(connectionString)
-    }
-    return mssql.NewAccessTokenConnector(connectionString, func() (string, error) { return c.tokenProvider() })
-  }
-  if c.FedauthMSI != nil {
-    query.Set("fedauth", "ActiveDirectoryManagedIdentity")
-    if c.FedauthMSI.UserID != "" {
-      query.Set("user id", c.FedauthMSI.UserID)
-    }
-  } else {
-    query.Set("fedauth", "ActiveDirectoryDefault")
-  }
-  connectionString := (&url.URL{
-    Scheme:   "sqlserver",
-    Host:     host,
-    RawQuery: query.Encode(),
-  }).String()
-  return azuread.NewConnector(connectionString)
+	query := url.Values{}
+	host := fmt.Sprintf("%s:%s", c.Host, c.Port)
+	if c.Database != "" {
+		query.Set("database", c.Database)
+	}
+	if c.Login != nil || c.AzureLogin != nil {
+		connectionString := (&url.URL{
+			Scheme:   "sqlserver",
+			User:     c.userPassword(),
+			Host:     host,
+			RawQuery: query.Encode(),
+		}).String()
+		if c.Login != nil {
+			return mssql.NewConnector(connectionString)
+		}
+		return mssql.NewAccessTokenConnector(connectionString, func() (string, error) { return c.tokenProvider() })
+	}
+	if c.FedauthMSI != nil {
+		query.Set("fedauth", "ActiveDirectoryManagedIdentity")
+		if c.FedauthMSI.UserID != "" {
+			query.Set("user id", c.FedauthMSI.UserID)
+		}
+	} else {
+		query.Set("fedauth", "ActiveDirectoryDefault")
+	}
+	connectionString := (&url.URL{
+		Scheme:   "sqlserver",
+		Host:     host,
+		RawQuery: query.Encode(),
+	}).String()
+	return azuread.NewConnector(connectionString)
 }
 
 func (c *Connector) userPassword() *url.Userinfo {
-  if c.Login != nil {
-    return url.UserPassword(c.Login.Username, c.Login.Password)
-  }
-  return nil
+	if c.Login != nil {
+		return url.UserPassword(c.Login.Username, c.Login.Password)
+	}
+	return nil
 }
 
 func (c *Connector) tokenProvider() (string, error) {
-  const resourceID = "https://database.windows.net/"
+	const resourceID = "https://database.windows.net/"
 
-  admin := c.AzureLogin
-  oauthConfig, err := adal.NewOAuthConfig(azure.PublicCloud.ActiveDirectoryEndpoint, admin.TenantID)
-  if err != nil {
-    return "", err
-  }
+	admin := c.AzureLogin
+	oauthConfig, err := adal.NewOAuthConfig(azure.PublicCloud.ActiveDirectoryEndpoint, admin.TenantID)
+	if err != nil {
+		return "", err
+	}
 
-  spt, err := adal.NewServicePrincipalToken(*oauthConfig, admin.ClientID, admin.ClientSecret, resourceID)
-  if err != nil {
-    return "", err
-  }
+	spt, err := adal.NewServicePrincipalToken(*oauthConfig, admin.ClientID, admin.ClientSecret, resourceID)
+	if err != nil {
+		return "", err
+	}
 
-  err = spt.EnsureFresh()
-  if err != nil {
-    return "", err
-  }
+	err = spt.EnsureFresh()
+	if err != nil {
+		return "", err
+	}
 
-  c.Token = spt.OAuthToken()
+	c.Token = spt.OAuthToken()
 
-  return spt.OAuthToken(), nil
+	return spt.OAuthToken(), nil
 }
 
 func connectLoop(connector driver.Connector, timeout time.Duration) (*sql.DB, error) {
-  ticker := time.NewTicker(250 * time.Millisecond)
-  defer ticker.Stop()
+	ticker := time.NewTicker(250 * time.Millisecond)
+	defer ticker.Stop()
 
-  timeoutExceeded := time.After(timeout)
-  for {
-    select {
-    case <-timeoutExceeded:
-      return nil, fmt.Errorf("db connection failed after %s timeout", timeout)
+	timeoutExceeded := time.After(timeout)
+	for {
+		select {
+		case <-timeoutExceeded:
+			return nil, fmt.Errorf("db connection failed after %s timeout", timeout)
 
-    case <-ticker.C:
-      db, err := connect(connector)
-      if err == nil {
-        return db, nil
-      }
-      if strings.Contains(strings.ToLower(err.Error()), "login failed") {
-        return nil, err
-      }
-      if strings.Contains(strings.ToLower(err.Error()), "login error") {
-        return nil, err
-      }
-      if strings.Contains(err.Error(), "error retrieving access token") {
-        return nil, err
-      }
-      if strings.Contains(err.Error(), "AuthenticationFailedError") {
-        return nil, err
-      }
-      if strings.Contains(err.Error(), "credential") {
-        return nil, err
-      }
-      if strings.Contains(err.Error(), "request failed") {
-        return nil, err
-      }
-      log.Println(errors.Wrap(err, "failed to connect to database"))
-    }
-  }
+		case <-ticker.C:
+			db, err := connect(connector)
+			if err == nil {
+				return db, nil
+			}
+			if strings.Contains(strings.ToLower(err.Error()), "login failed") {
+				return nil, err
+			}
+			if strings.Contains(strings.ToLower(err.Error()), "login error") {
+				return nil, err
+			}
+			if strings.Contains(err.Error(), "error retrieving access token") {
+				return nil, err
+			}
+			if strings.Contains(err.Error(), "AuthenticationFailedError") {
+				return nil, err
+			}
+			if strings.Contains(err.Error(), "credential") {
+				return nil, err
+			}
+			if strings.Contains(err.Error(), "request failed") {
+				return nil, err
+			}
+			log.Println(errors.Wrap(err, "failed to connect to database"))
+		}
+	}
 }
 
 func connect(connector driver.Connector) (*sql.DB, error) {
-  db := sql.OpenDB(connector)
-  if err := db.Ping(); err != nil {
-    db.Close()
-    return nil, err
-  }
-  return db, nil
+	db := sql.OpenDB(connector)
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return db, nil
 }
